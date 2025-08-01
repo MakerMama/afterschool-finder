@@ -294,13 +294,13 @@ try:
             with st.container():
                 html = f"""
                 <div class='result-card'>
-                    <div class='program-name'>{program['Program Name']}</div>
-                    <div class='provider-name'>{program['Provider Name']}</div>
-                    <p><span class='info-label'>Day:</span> Wednesday TEST</p>
-                    <p><span class='info-label'>Time:</span> {program['Start time']} - {program['End time']}</p>
-                    <p><span class='info-label'>Ages:</span> {int(float(program['Min Age']))} - {int(float(program['Max Age']))}</p>
-                    <p><span class='info-label'>Category:</span> {program['Interest Category']}</p>
-                    <p><span class='info-label'>Address:</span> {program['Address']}</p>
+                    <div class='program-name'>{program.get('Program Name', 'N/A')}</div>
+                    <div class='provider-name'>{program.get('Provider Name', 'N/A')}</div>
+                    <p><span class='info-label'>Day:</span> {program.get('Day of the week', 'N/A')}</p>
+                    <p><span class='info-label'>Time:</span> {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>
+                    <p><span class='info-label'>Ages:</span> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>
+                    <p><span class='info-label'>Category:</span> {program.get('Interest Category', 'N/A')}</p>
+                    <p><span class='info-label'>Address:</span> {program.get('Address', 'N/A')}</p>
                 """
                 if 'Distance' in program:
                     html += f"<p><span class='info-label'>Distance:</span> {program['Distance']:.2f} miles</p>"
