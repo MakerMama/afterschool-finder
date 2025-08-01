@@ -292,6 +292,7 @@ try:
                     
         for _, program in filtered_df.iterrows():
             with st.container():
+                st.write(f"🔍 BUILDING CARD FOR: {program.get('Program Name', 'UNKNOWN')}")
                 html = f"""
                 <div class='result-card'>
                     <div class='program-name'>{program.get('Program Name', 'N/A')}</div>
