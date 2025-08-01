@@ -282,6 +282,14 @@ try:
         
         # Display results in cards
         st.subheader("Program Details")
+        # DEBUG: Show what's actually in the first filtered program
+        if len(filtered_df) > 0:
+            st.write("### 🔍 FIRST PROGRAM RAW DATA")
+            first_result = filtered_df.iloc[0]
+            for col in ['Day of the week', 'Start time', 'End time', 'Min Age', 'Max Age', 'Interest Category', 'Address']:
+                if col in first_result:
+                    st.write(f"**{col}:** '{first_result[col]}' (type: {type(first_result[col])}, null: {pd.isna(first_result[col])})")
+                    
         for _, program in filtered_df.iterrows():
             with st.container():
                 html = f"""
