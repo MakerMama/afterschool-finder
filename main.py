@@ -67,62 +67,33 @@ st.markdown("""
         padding: 0.5rem 1rem;
         width: 100%;
     }
-    /* Form container - narrower width */
-    div.stForm > div[data-testid="stForm"] {
-        max-width: 600px !important;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-    /* Day picker container */
-    div.day-picker {
-        display: flex;
-        flex-wrap: nowrap;
-        justify-content: space-between;
-        padding: 0;
-        margin: 0;
-        flex-wrap: nowrap;
-        width: 100%;
-        max-width: 500px;
-    }
-    /* Make day checkboxes more compact */
-    div.row-widget.stCheckbox {
-        display: inline-block;
-        margin: 0;
-        min-width: 10px;
-        padding: 0;
-    }
-    /* Day checkbox styling */
-    div.stCheckbox > label {
-        white-space: nowrap;
-        font-size: 0.75rem;
-        padding: 0;
-        margin: 0;
-    }
-    /* Reduce column padding */
-    div[data-testid="column"] {
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
-    /* Input fields - reduced width */
-    div[data-testid="stNumberInput"] {
-        max-width: 150px;
-    }
-    div[data-testid="stTextInput"] {
-        max-width: 400px;
-    }
-    /* Multiselect field - reduced width */
-    div[data-testid="stMultiSelect"] {
-        max-width: 400px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
 # App header
 st.markdown("<h1 class='main-header'>📚 Find Your Perfect After-School Program</h1>", unsafe_allow_html=True)
 
-# Load data
+# Load data with DEBUG INFO
 try:
     df = load_and_process_data("attached_assets/ProgramData.csv")
+    
+    # DEBUG: Show data loading info
+    st.sidebar.markdown("### 🔍 DEBUG INFO")
+    st.sidebar.write(f"**Total programs loaded:** {len(df)}")
+    st.sidebar.write(f"**Columns found:** {len(df.columns)}")
+    
+    # Show column names to check for issues
+    st.sidebar.write("**Column names:**")
+    for i, col in enumerate(df.columns):
+        st.sidebar.write(f"{i+1}. '{col}' (len: {len(col)})")
+    
+    # Show sample data
+    if len(df) > 0:
+        st.sidebar.write("**First program data:**")
+        first_program = df.iloc[0]
+        for col in ['Program Name', 'Day of the week', 'Start time', 'End time', 'Min Age', 'Max Age']:
+            if col in df.columns:
+                st.sidebar.write(f"- {col}: '{first_program[col]}' (type: {type(first_program[col])})")
     
     # Get unique values for filters
     interest_categories = get_unique_values(df, 'Interest Category')
@@ -217,6 +188,15 @@ try:
             st.session_state.max_distance = max_distance
             st.session_state.submitted = True
             
+            # DEBUG: Show filter parameters
+            st.write("### 🔍 FILTER DEBUG")
+            st.write(f"**Child age:** {child_age}")
+            st.write(f"**Selected days:** {selected_days}")
+            st.write(f"**Selected interests:** {selected_interests}")
+            st.write(f"**Time range:** {start_time} - {end_time}")
+            st.write(f"**Address:** {user_address}")
+            st.write(f"**Max distance:** {max_distance}")
+            
             # Filter programs
             filters = {
                 'child_age': child_age,
@@ -228,10 +208,40 @@ try:
                 'max_distance': max_distance
             }
             
+            # DEBUG: Step by step filtering
+            st.write("### 🔍 FILTERING STEPS")
+            
+            # Start with all programs
+            test_df = df.copy()
+            st.write(f"**Step 0 - All programs:** {len(test_df)}")
+            
+            # Days filter
+            if selected_days:
+                before = len(test_df)
+                test_df = test_df[test_df['Day of the week'].isin(selected_days)]
+                st.write(f"**Step 1 - After day filter:** {len(test_df)} (removed {before - len(test_df)})")
+                if len(test_df) == 0:
+                    st.error("❌ NO PROGRAMS LEFT after day filter!")
+                    st.write(f"Available days in CSV: {df['Day of the week'].unique()}")
+            
+            # Age filter
+            if child_age is not None:
+                before = len(test_df)
+                test_df = test_df[
+                    (test_df['Min Age'] <= child_age) & 
+                    (test_df['Max Age'] >= child_age)
+                ]
+                st.write(f"**Step 2 - After age filter:** {len(test_df)} (removed {before - len(test_df)})")
+                if len(test_df) == 0:
+                    st.error("❌ NO PROGRAMS LEFT after age filter!")
+                    st.write(f"Age ranges in CSV: Min={df['Min Age'].min()}, Max={df['Max Age'].max()}")
+            
+            # Use the actual filter function
             filtered_df = filter_programs(df, filters)
             st.session_state.filtered_df = filtered_df
+            
+            st.write(f"**Final result:** {len(filtered_df)} programs")
         else:
-            # If form is not submitted, clear previous results and submission state
             st.session_state.filtered_df = None
             st.session_state.submitted = False
 
@@ -241,9 +251,9 @@ try:
         
         # Show number of results
         st.subheader(f"Found {len(filtered_df)} programs matching your criteria")
+        
         # Create map if address is provided
         if st.session_state.user_address and len(filtered_df) > 0:
-            # Clear previous map by recreating a new folium map object each timefolium_static
             user_coords = geocode_address(st.session_state.user_address)
             if user_coords:
                 m = folium.Map(location=user_coords, zoom_start=13)
@@ -253,7 +263,7 @@ try:
                     popup="Your Location",
                     icon=folium.Icon(color="red", icon="home"),
                 ).add_to(m)
-                # Add program markers (no accumulation from previous runs)
+                # Add program markers
                 for _, program in filtered_df.iterrows():
                     prog_coords = geocode_address(program['Address'])
                     if prog_coords:
@@ -302,9 +312,11 @@ try:
                 st.markdown(html, unsafe_allow_html=True)
         
     else:
-        # Reset filtered_df and submitted if form is not submitted
         st.session_state.filtered_df = None
         st.session_state.submitted = False
     
 except Exception as e:
     st.error(f"Error: {str(e)}")
+    import traceback
+    st.write("**Full error traceback:**")
+    st.code(traceback.format_exc())
