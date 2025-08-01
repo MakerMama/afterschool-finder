@@ -294,15 +294,12 @@ try:
             with st.container():
                 st.write(f"🔍 BUILDING CARD FOR: {program.get('Program Name', 'UNKNOWN')}")
                 html = f"""
-                <div class='result-card'>
-                    <div class='program-name'>{program.get('Program Name', 'N/A')}</div>
-                    <div class='provider-name'>{program.get('Provider Name', 'N/A')}</div>
-                    <p><span class='info-label'>Day:</span> {program.get('Day of the week', 'N/A')}</p>
-                    <p><span class='info-label'>Time:</span> {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>
-                    <p><span class='info-label'>Ages:</span> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>
-                    <p><span class='info-label'>Category:</span> {program.get('Interest Category', 'N/A')}</p>
-                    <p><span class='info-label'>Address:</span> {program.get('Address', 'N/A')}</p>
-                """
+                    <div style='background: lightgray; padding: 10px; margin: 10px;'>
+                        <h3>TEST PROGRAM</h3>
+                        <p>Name: {program.get('Program Name', 'N/A')}</p>
+                        <p>Day: {program.get('Day of the week', 'N/A')}</p>
+                    </div>
+                    """
                 if 'Distance' in program:
                     html += f"<p><span class='info-label'>Distance:</span> {program['Distance']:.2f} miles</p>"
                 if 'Cost' in program and not pd.isna(program['Cost']):
