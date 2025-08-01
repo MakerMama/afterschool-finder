@@ -294,11 +294,14 @@ try:
             with st.container():
                 st.write(f"🔍 BUILDING CARD FOR: {program.get('Program Name', 'UNKNOWN')}")
                 html = f"""
-                    <div style='background: lightgray; padding: 10px; margin: 10px;'>
-                        <h3>TEST PROGRAM</h3>
-                        <p>Name: {program.get('Program Name', 'N/A')}</p>
-                        <p>Day: {program.get('Day of the week', 'N/A')}</p>
-                    </div>
+                    <div style='background-color: #f8f9fa; border-radius: 10px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid #e9ecef;'>
+                        <h3 style='color: #1E3D59; font-weight: bold; margin-bottom: 0.5rem;'>{program.get('Program Name', 'N/A')}</h3>
+                        <p style='color: #555; font-style: italic; margin-bottom: 0.5rem;'>{program.get('Provider Name', 'N/A')}</p>
+                        <p><strong>Day:</strong> {program.get('Day of the week', 'N/A')}</p>
+                        <p><strong>Time:</strong> {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>
+                        <p><strong>Ages:</strong> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>
+                        <p><strong>Category:</strong> {program.get('Interest Category', 'N/A')}</p>
+                        <p><strong>Address:</strong> {program.get('Address', 'N/A')}</p>
                     """
                 if 'Distance' in program:
                     html += f"<p><span class='info-label'>Distance:</span> {program['Distance']:.2f} miles</p>"
