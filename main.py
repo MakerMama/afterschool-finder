@@ -296,9 +296,9 @@ try:
                 <div class='result-card'>
                     <div class='program-name'>{program['Program Name']}</div>
                     <div class='provider-name'>{program['Provider Name']}</div>
-                    <p><span class='info-label'>Day:</span> {program['Day of the week']}</p>
+                    <p><span class='info-label'>Day:</span> Wednesday TEST</p>
                     <p><span class='info-label'>Time:</span> {program['Start time']} - {program['End time']}</p>
-                    <p><span class='info-label'>Ages:</span> {int(program['Min Age'])} - {int(program['Max Age'])}</p>
+                    <p><span class='info-label'>Ages:</span> {int(float(program['Min Age']))} - {int(float(program['Max Age']))}</p>
                     <p><span class='info-label'>Category:</span> {program['Interest Category']}</p>
                     <p><span class='info-label'>Address:</span> {program['Address']}</p>
                 """
