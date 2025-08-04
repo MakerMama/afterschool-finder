@@ -114,6 +114,42 @@ def format_duration(minutes):
         else:
             return f"({hours}h {mins}m)"
 
+def get_category_icon(category):
+    """Get icon for program category"""
+    if not category or pd.isna(category):
+        return "📚"
+    
+    category_lower = str(category).lower()
+    
+    if any(word in category_lower for word in ['art', 'craft', 'draw', 'paint', 'creative']):
+        return "🎨"
+    elif any(word in category_lower for word in ['sport', 'soccer', 'basketball', 'tennis', 'swim', 'athletic', 'physical']):
+        return "⚽"
+    elif any(word in category_lower for word in ['music', 'piano', 'guitar', 'sing', 'band', 'choir']):
+        return "🎵"
+    elif any(word in category_lower for word in ['stem', 'science', 'math', 'coding', 'robot', 'engineering', 'tech']):
+        return "🔬"
+    elif any(word in category_lower for word in ['dance', 'ballet', 'hip hop']):
+        return "💃"
+    elif any(word in category_lower for word in ['academic', 'tutor', 'homework', 'study']):
+        return "📚"
+    elif any(word in category_lower for word in ['language', 'spanish', 'french', 'chinese']):
+        return "🗣️"
+    else:
+        return "📚"
+
+def get_distance_badge_info(distance):
+    """Get distance badge class and text"""
+    if pd.isna(distance) or distance <= 0:
+        return "", ""
+    
+    if distance < 1:
+        return "distance-close", f"{distance:.1f}mi"
+    elif distance <= 2:
+        return "distance-medium", f"{distance:.1f}mi"
+    else:
+        return "distance-far", f"{distance:.1f}mi"
+
 def display_schedule_grid(filtered_df):
     """Display programs in a weekly schedule grid with dynamic time slots"""
     if len(filtered_df) == 0:
@@ -181,36 +217,61 @@ def display_schedule_grid(filtered_df):
             
             # Show all programs that start at this exact time on this day
             programs = programs_by_day_time[day][time_slot]
-            for program in programs:
+            program_count = len(programs)
+            
+            for i, program in enumerate(programs):
                 program_name = program.get('Program Name', 'N/A')
                 provider_name = program.get('Provider Name', 'N/A')
+                category = program.get('Interest Category', '')
+                distance = program.get('Distance', 0)
                 start_time = program.get('Start time', '')
                 end_time = program.get('End time', '')
+                
+                # Get category icon
+                icon = get_category_icon(category)
+                
+                # Get distance badge info
+                distance_class, distance_text = get_distance_badge_info(distance)
                 
                 # Calculate duration
                 duration_minutes = calculate_duration_minutes(start_time, end_time)
                 duration_str = format_duration(duration_minutes)
                 
-                # Create display name with duration
-                display_name = program_name
-                if len(display_name) > 12:
-                    display_name = display_name[:9] + "..."
-                
-                # Create display provider with duration
-                display_provider = provider_name
-                if len(display_provider) > 10:
-                    display_provider = display_provider[:7] + "..."
-                
-                # Full tooltip with all info
-                tooltip = f"{program.get('Program Name', 'N/A')} - {program.get('Provider Name', 'N/A')}"
+                # Create tooltip with all info
+                tooltip = f"{program_name} - {provider_name}"
+                if start_time and end_time:
+                    tooltip += f" | {start_time} - {end_time}"
                 if duration_minutes > 0:
-                    tooltip += f" | {start_time} - {end_time} | Duration: {format_duration(duration_minutes).strip('()')}"
+                    tooltip += f" | Duration: {format_duration(duration_minutes).strip('()')}"
+                if distance > 0:
+                    tooltip += f" | Distance: {distance:.1f} miles"
+                if category:
+                    tooltip += f" | Category: {category}"
                 
+                # Create compact program card
                 html += f"""
-                <div class="program-card" title="{tooltip}">
-                    <div class="program-name">{display_name} {duration_str}</div>
-                    <div class="provider-name">{display_provider}</div>
-                </div>"""
+                <div class="program-card" title="{tooltip}" onclick="showProgramDetails('{program_name}')">
+                    <div class="program-card-content">
+                        <div class="category-icon">{icon}</div>
+                        <div class="program-info">
+                            <div class="program-title">{program_name}</div>
+                        </div>
+                        <div class="program-actions">"""
+                
+                # Add distance badge if available
+                if distance_class and distance_text:
+                    html += f'<div class="distance-badge {distance_class}">{distance_text}</div>'
+                
+                # Add favorite icon
+                html += f'''
+                            <div class="favorite-icon" onclick="toggleFavorite(event, '{program_name}')" title="Save to favorites">♡</div>
+                        </div>
+                    </div>
+                </div>'''
+            
+            # Add overflow indicator if many programs
+            if program_count >= 6:
+                html += f'<div class="overflow-indicator">↕ {program_count}</div>'
             
             html += '</td>'
         
@@ -528,43 +589,135 @@ st.markdown("""
     
     .schedule-cell {
         border: 1px solid #e9ecef;
-        padding: 0.25rem;
-        min-height: 50px;
-        width: 120px;
+        padding: 0.15rem;
+        min-height: 60px;
+        max-height: 300px;
+        width: 140px;
         position: relative;
         background: #fafafa;
         vertical-align: top;
-        height: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .schedule-cell::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .schedule-cell::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 2px;
+    }
+    
+    .schedule-cell::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 2px;
+    }
+    
+    .schedule-cell::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
     }
     
     .program-card {
-        background: #4CAF50;
-        color: white;
-        padding: 0.3rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        font-weight: 500;
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 0.4rem 0.5rem;
         margin: 2px 0;
+        height: 36px;
+        display: flex;
+        align-items: center;
         cursor: pointer;
-        transition: all 0.2s;
-        line-height: 1.1;
-        word-wrap: break-word;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+        position: relative;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     
     .program-card:hover {
-        background: #45a049;
-        transform: scale(1.02);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        border-color: #1E3D59;
+        z-index: 10;
     }
     
-    .program-card .program-name {
+    .program-card-content {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 0.3rem;
+        overflow: hidden;
+    }
+    
+    .category-icon {
+        font-size: 0.9rem;
+        flex-shrink: 0;
+        width: 16px;
+        text-align: center;
+    }
+    
+    .program-info {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .program-title {
+        font-size: 0.65rem;
         font-weight: 600;
-        margin-bottom: 2px;
-        font-size: 0.7rem;
+        color: #1E3D59;
+        line-height: 1.1;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
     
-    .program-card .provider-name {
+    .program-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        flex-shrink: 0;
+    }
+    
+    .distance-badge {
+        font-size: 0.55rem;
+        font-weight: 600;
+        padding: 0.1rem 0.3rem;
+        border-radius: 8px;
+        color: white;
+    }
+    
+    .distance-close { background: #4CAF50; }
+    .distance-medium { background: #FF9800; }
+    .distance-far { background: #f44336; }
+    
+    .favorite-icon {
+        font-size: 0.7rem;
+        color: #ccc;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    
+    .favorite-icon:hover {
+        color: #e91e63;
+    }
+    
+    .favorite-icon.active {
+        color: #e91e63;
+    }
+    
+    .overflow-indicator {
+        position: absolute;
+        bottom: 2px;
+        right: 4px;
         font-size: 0.6rem;
-        opacity: 0.9;
+        color: #666;
+        background: rgba(255,255,255,0.9);
+        padding: 1px 3px;
+        border-radius: 2px;
+        font-weight: 600;
     }
     
     /* Mobile schedule adjustments */
@@ -575,8 +728,9 @@ st.markdown("""
         }
         
         .schedule-cell {
-            width: 100px;
-            min-height: 50px;
+            width: 120px;
+            min-height: 60px;
+            max-height: 250px;
         }
         
         .time-slot {
@@ -590,12 +744,26 @@ st.markdown("""
         }
         
         .program-card {
-            font-size: 0.65rem;
-            padding: 0.2rem 0.4rem;
+            height: 32px;
+            padding: 0.3rem 0.4rem;
         }
         
-        .program-card .provider-name {
+        .program-title {
             font-size: 0.6rem;
+        }
+        
+        .category-icon {
+            font-size: 0.8rem;
+            width: 14px;
+        }
+        
+        .distance-badge {
+            font-size: 0.5rem;
+            padding: 0.05rem 0.2rem;
+        }
+        
+        .favorite-icon {
+            font-size: 0.65rem;
         }
     }
     
@@ -699,6 +867,31 @@ st.markdown("""
         color: #ffffff !important;
     }
     </style>
+    
+    <script>
+    function showProgramDetails(programName) {
+        // Create a modal or expand details
+        alert('Program Details: ' + programName + '\\n\\nClick functionality implemented!\\nIn a full version, this would show detailed program information.');
+    }
+    
+    function toggleFavorite(event, programName) {
+        event.stopPropagation(); // Prevent card click
+        const heartIcon = event.target;
+        
+        if (heartIcon.classList.contains('active')) {
+            heartIcon.classList.remove('active');
+            heartIcon.innerHTML = '♡';
+            heartIcon.title = 'Save to favorites';
+        } else {
+            heartIcon.classList.add('active');
+            heartIcon.innerHTML = '♥';
+            heartIcon.title = 'Remove from favorites';
+        }
+        
+        // In a full version, this would save to localStorage or backend
+        console.log('Toggled favorite for:', programName);
+    }
+    </script>
 """, unsafe_allow_html=True)
 
 # App header
