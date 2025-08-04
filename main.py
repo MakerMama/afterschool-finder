@@ -5,6 +5,201 @@ from streamlit_folium import st_folium
 from datetime import datetime
 from utils import filter_programs, geocode_address, load_and_process_data, get_unique_values
 
+# Helper functions for display
+def display_program_card(program):
+    """Display a program as a card in list view"""
+    with st.container():
+        html = f"""
+        <div style='background-color: #f8f9fa; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+            <h3 style='color: #1E3D59; font-weight: bold; margin-bottom: 0.2rem; font-size: 1.2rem;'>{program.get('Program Name', 'N/A')}</h3>
+            <p style='color: #1E3D59; font-weight: 600; margin-bottom: 0.6rem; font-size: 1.0rem;'>{program.get('Provider Name', 'N/A')}</p>
+            <div style='background: #e8f4f8; border-radius: 8px; padding: 0.7rem; margin-bottom: 0.8rem; border-left: 4px solid #1E3D59;'>
+                <p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>⏰</span>{program.get('Day of the week', 'N/A')} • {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>"""
+        
+        # Add cost and distance to key info bar
+        if 'Distance' in program and not pd.isna(program['Distance']):
+            html += f"<p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>📍</span>{program['Distance']:.2f} miles away</p>"
+        
+        cost_info = []
+        enrollment_type = program.get('Enrollment Type', '').strip() if isinstance(program.get('Enrollment Type'), str) else ''
+        
+        if 'Cost' in program and not pd.isna(program['Cost']):
+            base_cost = f"${program['Cost']:.2f}"
+            if enrollment_type:
+                if 'semester' in enrollment_type.lower():
+                    base_cost += "/semester"
+                elif 'monthly' in enrollment_type.lower():
+                    base_cost += "/month"
+                elif 'drop' in enrollment_type.lower():
+                    base_cost += " (drop-in)"
+                else:
+                    base_cost += f" ({enrollment_type.lower()})"
+            cost_info.append(base_cost)
+        
+        if 'Cost Per Class' in program and not pd.isna(program['Cost Per Class']):
+            cost_info.append(f"${program['Cost Per Class']:.2f}/class")
+        
+        if cost_info:
+            html += f"<p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>💰</span>{' • '.join(cost_info)}</p>"
+        html += "</div>"
+        
+        # Secondary details
+        html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>👶</span><strong>Ages:</strong> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>"
+        html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🎯</span><strong>Category:</strong> {program.get('Interest Category', 'N/A')}</p>"
+        html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>📍</span><strong>Address:</strong> {program.get('Address', 'N/A')}</p>"
+        
+        # Contact & additional info
+        if 'Website' in program and not pd.isna(program['Website']):
+            html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🌐</span><a href='{program['Website']}' target='_blank' style='color: #1E3D59; text-decoration: none;'>Website</a></p>"
+        if 'Contact Phone' in program and not pd.isna(program['Contact Phone']):
+            html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>📞</span><strong>Phone:</strong> {program['Contact Phone']}</p>"
+        if 'School Pickup From' in program and isinstance(program['School Pickup From'], str) and program['School Pickup From'].strip():
+            html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🚌</span><strong>School pickup:</strong> {program['School Pickup From']}</p>"
+        html += "</div>"
+        st.markdown(html, unsafe_allow_html=True)
+
+def parse_time(time_str):
+    """Parse time string to minutes from midnight for sorting"""
+    if not time_str or pd.isna(time_str):
+        return 0
+    try:
+        time_str = str(time_str).strip()
+        if 'AM' in time_str or 'PM' in time_str:
+            time_part = time_str.replace('AM', '').replace('PM', '').strip()
+            hour, minute = map(int, time_part.split(':'))
+            if 'PM' in time_str and hour != 12:
+                hour += 12
+            elif 'AM' in time_str and hour == 12:
+                hour = 0
+            return hour * 60 + minute
+        else:
+            # Assume 24-hour format
+            hour, minute = map(int, time_str.split(':'))
+            return hour * 60 + minute
+    except:
+        return 0
+
+def minutes_to_time_str(minutes):
+    """Convert minutes from midnight to time string"""
+    hour = minutes // 60
+    minute = minutes % 60
+    if hour == 0:
+        return f"12:{minute:02d} AM"
+    elif hour < 12:
+        return f"{hour}:{minute:02d} AM"
+    elif hour == 12:
+        return f"12:{minute:02d} PM"
+    else:
+        return f"{hour-12}:{minute:02d} PM"
+
+def display_schedule_grid(filtered_df):
+    """Display programs in a weekly schedule grid"""
+    if len(filtered_df) == 0:
+        return
+    
+    # Days of the week (Mon-Fri)
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    
+    # Get time range from programs
+    start_times = []
+    end_times = []
+    
+    for _, program in filtered_df.iterrows():
+        start_time = parse_time(program.get('Start time'))
+        end_time = parse_time(program.get('End time'))
+        if start_time > 0:
+            start_times.append(start_time)
+        if end_time > 0:
+            end_times.append(end_time)
+    
+    # Default to 2:30 PM - 6:00 PM if no times found
+    if not start_times:
+        start_times = [14 * 60 + 30]  # 2:30 PM
+    if not end_times:
+        end_times = [18 * 60]  # 6:00 PM
+    
+    # Create time slots (30-minute intervals)
+    earliest = min(start_times)
+    latest = max(end_times)
+    
+    # Round to nearest 30-minute slot
+    earliest = (earliest // 30) * 30
+    latest = ((latest + 29) // 30) * 30
+    
+    time_slots = []
+    current_time = earliest
+    while current_time < latest:
+        time_slots.append(current_time)
+        current_time += 30
+    
+    # Group programs by day
+    programs_by_day = {day: [] for day in days}
+    for _, program in filtered_df.iterrows():
+        day = program.get('Day of the week', '').strip()
+        if day in programs_by_day:
+            programs_by_day[day].append(program)
+    
+    # Create the schedule grid
+    html = """
+    <div class="schedule-container">
+        <div class="schedule-grid">
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th class="time-slot">Time</th>"""
+    
+    for day in days:
+        html += f'<th class="day-header">{day}</th>'
+    
+    html += """
+                    </tr>
+                </thead>
+                <tbody>"""
+    
+    # Create rows for each time slot
+    for time_slot in time_slots:
+        time_str = minutes_to_time_str(time_slot)
+        html += f"""
+                    <tr>
+                        <td class="time-slot">{time_str}</td>"""
+        
+        for day in days:
+            html += '<td class="schedule-cell">'
+            
+            # Find programs for this day and time slot
+            for program in programs_by_day[day]:
+                program_start = parse_time(program.get('Start time'))
+                program_end = parse_time(program.get('End time'))
+                
+                # Check if program overlaps with this time slot
+                if program_start <= time_slot < program_end:
+                    program_name = program.get('Program Name', 'N/A')
+                    provider_name = program.get('Provider Name', 'N/A')
+                    
+                    # Truncate names for display
+                    if len(program_name) > 15:
+                        program_name = program_name[:12] + "..."
+                    if len(provider_name) > 12:
+                        provider_name = provider_name[:9] + "..."
+                    
+                    html += f"""
+                    <div class="program-card" title="{program.get('Program Name', 'N/A')} - {program.get('Provider Name', 'N/A')}">
+                        <div class="program-name">{program_name}</div>
+                        <div class="provider-name">{provider_name}</div>
+                    </div>"""
+            
+            html += '</td>'
+        
+        html += '</tr>'
+    
+    html += """
+                </tbody>
+            </table>
+        </div>
+    </div>"""
+    
+    st.markdown(html, unsafe_allow_html=True)
+
 # Initialize session state
 if 'selected_days' not in st.session_state:
     st.session_state.selected_days = []
@@ -24,6 +219,8 @@ if 'filtered_df' not in st.session_state:
     st.session_state.filtered_df = None
 if 'submitted' not in st.session_state:
     st.session_state.submitted = False
+if 'view_mode' not in st.session_state:
+    st.session_state.view_mode = "List View"
 
 # Custom CSS for styling with mobile responsiveness
 st.markdown("""
@@ -262,6 +459,119 @@ st.markdown("""
         padding-top: 1.5rem;
         border-top: 2px solid #e9ecef;
         text-align: center;
+    }
+    
+    /* Schedule Grid Styles */
+    .schedule-container {
+        margin: 1rem 0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .schedule-grid {
+        overflow-x: auto;
+        background: white;
+    }
+    
+    .schedule-table {
+        width: 100%;
+        min-width: 700px;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    
+    .day-header {
+        background: #1E3D59;
+        color: white;
+        font-weight: 600;
+        text-align: center;
+        padding: 0.75rem 0.5rem;
+        border: 1px solid #1E3D59;
+    }
+    
+    .time-slot {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #1E3D59;
+        padding: 0.75rem 0.5rem;
+        text-align: center;
+        border: 1px solid #e9ecef;
+        width: 100px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+    
+    .schedule-cell {
+        border: 1px solid #e9ecef;
+        padding: 0.25rem;
+        min-height: 60px;
+        width: 120px;
+        position: relative;
+        background: #fafafa;
+        vertical-align: top;
+    }
+    
+    .program-card {
+        background: #4CAF50;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        margin: 1px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: all 0.2s;
+        line-height: 1.2;
+    }
+    
+    .program-card:hover {
+        background: #45a049;
+        transform: scale(1.02);
+    }
+    
+    .program-card .program-name {
+        font-weight: 600;
+        margin-bottom: 1px;
+    }
+    
+    .program-card .provider-name {
+        font-size: 0.65rem;
+        opacity: 0.9;
+    }
+    
+    /* Mobile schedule adjustments */
+    @media (max-width: 768px) {
+        .schedule-table {
+            min-width: 600px;
+            font-size: 0.75rem;
+        }
+        
+        .schedule-cell {
+            width: 100px;
+            min-height: 50px;
+        }
+        
+        .time-slot {
+            width: 80px;
+            padding: 0.5rem 0.25rem;
+            font-size: 0.7rem;
+        }
+        
+        .day-header {
+            padding: 0.5rem 0.25rem;
+        }
+        
+        .program-card {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .program-card .provider-name {
+            font-size: 0.6rem;
+        }
     }
     
     /* Mobile map adjustments */
@@ -515,6 +825,18 @@ try:
         
         st.markdown(f'<div style="color: #1E3D59; font-size: 1.4rem; margin: 1rem 0 0.5rem 0; text-align: center; padding: 0.5rem; font-weight: 600;">{result_text}</div>', unsafe_allow_html=True)
         
+        # View toggle buttons
+        if len(filtered_df) > 0:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                view_col1, view_col2 = st.columns(2)
+                with view_col1:
+                    if st.button("📋 List View", key="list_view", use_container_width=True):
+                        st.session_state.view_mode = "List View"
+                with view_col2:
+                    if st.button("📅 Schedule View", key="schedule_view", use_container_width=True):
+                        st.session_state.view_mode = "Schedule View"
+        
         # Create map with program locations
         if len(filtered_df) > 0:
             # Get coordinates for all programs
@@ -580,6 +902,7 @@ try:
                         icon=folium.Icon(color="blue", icon="info-circle", prefix="fa"),
                     ).add_to(m)
                 
+                # Show map for both views
                 st.markdown('<div style="font-size: 1.3rem; font-weight: 600; color: #1E3D59; margin: 0.2rem 0 0.2rem 0; padding: 0;">🗺️ Program Locations</div>', unsafe_allow_html=True)
                 
                 # Responsive map sizing
@@ -587,60 +910,19 @@ try:
                 with map_container:
                     st_folium(m, width="100%", height=400, use_container_width=True)
         
-        # Display results in cards
+        # Display results based on view mode
         if len(filtered_df) > 0:
-            st.markdown('<div style="font-size: 1.3rem; font-weight: 600; color: #1E3D59; margin: 0.2rem 0; padding: 0;">📋 Program Details</div>', unsafe_allow_html=True)
+            if st.session_state.view_mode == "List View":
+                # List View
+                st.markdown('<div style="font-size: 1.3rem; font-weight: 600; color: #1E3D59; margin: 0.2rem 0; padding: 0;">📋 Program Details</div>', unsafe_allow_html=True)
+                for _, program in filtered_df.iterrows():
+                    display_program_card(program)
+            else:
+                # Schedule View
+                st.markdown('<div style="font-size: 1.3rem; font-weight: 600; color: #1E3D59; margin: 0.2rem 0; padding: 0;">📅 Weekly Schedule</div>', unsafe_allow_html=True)
+                display_schedule_grid(filtered_df)
         else:
             st.info("💡 **Tips for better results:**\n- Try increasing the distance range\n- Select fewer interest categories\n- Adjust the time range\n- Check more days of the week")
-        for _, program in filtered_df.iterrows():
-            with st.container():
-                html = f"""
-                <div style='background-color: #f8f9fa; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-                    <h3 style='color: #1E3D59; font-weight: bold; margin-bottom: 0.2rem; font-size: 1.2rem;'>{program.get('Program Name', 'N/A')}</h3>
-                    <p style='color: #1E3D59; font-weight: 600; margin-bottom: 0.6rem; font-size: 1.0rem;'>{program.get('Provider Name', 'N/A')}</p>
-                    <div style='background: #e8f4f8; border-radius: 8px; padding: 0.7rem; margin-bottom: 0.8rem; border-left: 4px solid #1E3D59;'>
-                        <p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>⏰</span>{program.get('Day of the week', 'N/A')} • {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>"""
-                # Add cost and distance to key info bar
-                if 'Distance' in program and not pd.isna(program['Distance']):
-                    html += f"<p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>📍</span>{program['Distance']:.2f} miles away</p>"
-                cost_info = []
-                enrollment_type = program.get('Enrollment Type', '').strip() if isinstance(program.get('Enrollment Type'), str) else ''
-                
-                if 'Cost' in program and not pd.isna(program['Cost']):
-                    base_cost = f"${program['Cost']:.2f}"
-                    if enrollment_type:
-                        # Add enrollment type context to make cost clearer
-                        if 'semester' in enrollment_type.lower():
-                            base_cost += "/semester"
-                        elif 'monthly' in enrollment_type.lower():
-                            base_cost += "/month"
-                        elif 'drop' in enrollment_type.lower():
-                            base_cost += " (drop-in)"
-                        else:
-                            base_cost += f" ({enrollment_type.lower()})"
-                    cost_info.append(base_cost)
-                
-                if 'Cost Per Class' in program and not pd.isna(program['Cost Per Class']):
-                    cost_info.append(f"${program['Cost Per Class']:.2f}/class")
-                
-                if cost_info:
-                    html += f"<p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>💰</span>{' • '.join(cost_info)}</p>"
-                html += "</div>"
-                
-                # Secondary details
-                html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>👶</span><strong>Ages:</strong> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>"
-                html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🎯</span><strong>Category:</strong> {program.get('Interest Category', 'N/A')}</p>"
-                html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>📍</span><strong>Address:</strong> {program.get('Address', 'N/A')}</p>"
-                
-                # Contact & additional info
-                if 'Website' in program and not pd.isna(program['Website']):
-                    html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🌐</span><a href='{program['Website']}' target='_blank' style='color: #1E3D59; text-decoration: none;'>Website</a></p>"
-                if 'Contact Phone' in program and not pd.isna(program['Contact Phone']):
-                    html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>📞</span><strong>Phone:</strong> {program['Contact Phone']}</p>"
-                if 'School Pickup From' in program and isinstance(program['School Pickup From'], str) and program['School Pickup From'].strip():
-                    html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🚌</span><strong>School pickup:</strong> {program['School Pickup From']}</p>"
-                html += "</div>"
-                st.markdown(html, unsafe_allow_html=True)
     
 except Exception as e:
     st.error(f"Error: {str(e)}")
