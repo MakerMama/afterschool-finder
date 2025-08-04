@@ -634,7 +634,7 @@ try:
                 
                 # Contact & additional info
                 if 'Website' in program and not pd.isna(program['Website']):
-                    html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🌐</span><a href='{program['Website']}' target='_blank' style='color: #1E3D59; text-decoration: none; font-weight: 600;'>Website</a></p>"
+                    html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🌐</span><a href='{program['Website']}' target='_blank' style='color: #1E3D59; text-decoration: none;'>Website</a></p>"
                 if 'Contact Phone' in program and not pd.isna(program['Contact Phone']):
                     html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>📞</span><strong>Phone:</strong> {program['Contact Phone']}</p>"
                 if 'School Pickup From' in program and isinstance(program['School Pickup From'], str) and program['School Pickup From'].strip():
