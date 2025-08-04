@@ -29,13 +29,15 @@ if 'submitted' not in st.session_state:
 st.markdown("""
     <style>
     /* Base styles */
-    .main-header {
-        font-size: 1.4rem;
+    .main-header,
+    h1.main-header,
+    .stMarkdown .main-header {
+        font-size: 1.4rem !important;
         color: #1E3D59 !important;
-        text-align: center;
-        margin-bottom: 2rem;
-        line-height: 1.2;
-        white-space: nowrap;
+        text-align: center !important;
+        margin-bottom: 2rem !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
     }
     
     .section-header {
@@ -360,7 +362,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # App header
-st.markdown("<h1 class='main-header'>📚 Find Perfect After-School Programs</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-header' style='font-size: 1.4rem; color: #1E3D59 !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; white-space: nowrap;'>📚 Find Perfect After-School Programs</h1>", unsafe_allow_html=True)
 
 # Load data
 try:
