@@ -327,9 +327,12 @@ def display_schedule_grid(filtered_df):
                 if category:
                     tooltip += f" | Category: {category}"
                 
+                # Create unique program identifier for this time slot and day
+                program_id = f"{day}_{time_slot}_{i}"
+                
                 # Create compact program card
                 html += f"""
-                <div class="program-card" title="{tooltip}" onclick="showProgramDetails('{program_name}')">
+                <div class="program-card" title="{tooltip}">
                     <div class="program-card-content">
                         <div class="category-icon">{icon}</div>
                         <div class="program-info">
@@ -341,10 +344,22 @@ def display_schedule_grid(filtered_df):
                 if distance_class and distance_text:
                     html += f'<div class="distance-badge {distance_class}">{distance_text}</div>'
                 
-                # Add favorite icon
-                program_json = f"{program_name}|{provider_name}|{category}|{distance}"
+                # Add heart icon as clickable span for now (will enhance later)
+                is_saved = False
+                current_schedule = st.session_state.current_schedule
+                if current_schedule != "All Programs" and current_schedule in st.session_state.saved_schedules:
+                    # Check if program is already saved
+                    for saved_prog in st.session_state.saved_schedules[current_schedule]:
+                        if (saved_prog['Program Name'] == program_name and 
+                            saved_prog['Provider Name'] == provider_name):
+                            is_saved = True
+                            break
+                
+                heart_icon = "♥" if is_saved else "♡"
+                heart_class = "active" if is_saved else ""
+                
                 html += f'''
-                            <div class="favorite-icon" onclick="toggleFavorite(event, '{program_json}')" title="Save to schedule">♡</div>
+                            <span class="favorite-icon {heart_class}" title="{'Remove from schedule' if is_saved else 'Save to schedule'}">{heart_icon}</span>
                         </div>
                     </div>
                 </div>'''
@@ -364,6 +379,43 @@ def display_schedule_grid(filtered_df):
     </div>"""
     
     st.markdown(html, unsafe_allow_html=True)
+    
+    # Add save interface below the schedule grid
+    if st.session_state.current_schedule == "All Programs":
+        st.markdown("---")
+        st.markdown("### 💾 Save Programs to Schedule")
+        
+        # Create expandable sections for each time slot that has programs
+        for time_slot in time_slots:
+            time_str = minutes_to_time_str(time_slot)
+            programs_at_time = []
+            
+            for day in days:
+                programs = programs_by_day_time[day][time_slot]
+                for program in programs:
+                    programs_at_time.append((day, program))
+            
+            if programs_at_time:
+                with st.expander(f"⏰ {time_str} Programs ({len(programs_at_time)} available)"):
+                    save_cols = st.columns(min(len(programs_at_time), 3))
+                    
+                    for i, (day, program) in enumerate(programs_at_time):
+                        with save_cols[i % 3]:
+                            program_name = program.get('Program Name', 'N/A')
+                            provider_name = program.get('Provider Name', 'N/A')
+                            category = program.get('Interest Category', '')
+                            icon = get_category_icon(category)
+                            
+                            st.markdown(f"**{icon} {program_name}**")
+                            st.markdown(f"*{provider_name}*")
+                            st.markdown(f"📅 {day}")
+                            
+                            # Save button
+                            if st.button(f"💾 Save", key=f"save_{day}_{time_slot}_{i}"):
+                                # Show save dialog
+                                st.session_state.popup_program_data = program
+                                st.session_state.show_save_popup = True
+                                st.rerun()
 
 # Initialize session state
 if 'selected_days' not in st.session_state:
@@ -394,6 +446,8 @@ if 'show_save_popup' not in st.session_state:
     st.session_state.show_save_popup = False
 if 'popup_program_data' not in st.session_state:
     st.session_state.popup_program_data = None
+if 'save_program_index' not in st.session_state:
+    st.session_state.save_program_index = None
 
 # Custom CSS for styling with mobile responsiveness
 st.markdown("""
@@ -1520,6 +1574,76 @@ try:
                 display_schedule_grid(filtered_df)
         else:
             st.info("💡 **Tips for better results:**\n- Try increasing the distance range\n- Select fewer interest categories\n- Adjust the time range\n- Check more days of the week")
+        
+        # Save Program Popup
+        if st.session_state.show_save_popup and st.session_state.popup_program_data is not None:
+            program = st.session_state.popup_program_data
+            
+            st.markdown("---")
+            st.markdown(f"### 💾 Save '{program.get('Program Name', 'N/A')}' to Schedule")
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                # Schedule selection
+                existing_schedules = list(st.session_state.saved_schedules.keys())
+                schedule_options = ["-- Create New Schedule --"] + existing_schedules
+                
+                selected_option = st.selectbox(
+                    "Select Schedule:",
+                    options=schedule_options,
+                    key="schedule_selectbox"
+                )
+                
+                # Schedule name input
+                if selected_option == "-- Create New Schedule --":
+                    schedule_name = st.text_input(
+                        "Schedule Name:",
+                        placeholder="e.g., Ami 1, Mia 3, Emma Fall 2024",
+                        key="new_schedule_input"
+                    )
+                else:
+                    schedule_name = selected_option
+                    st.write(f"Adding to existing schedule: **{schedule_name}**")
+            
+            with col2:
+                st.markdown("**Program Info:**")
+                st.write(f"🎨 {program.get('Interest Category', 'N/A')}")
+                st.write(f"📅 {program.get('Day of the week', 'N/A')}")
+                st.write(f"⏰ {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}")
+                if program.get('Distance', 0) > 0:
+                    st.write(f"📍 {program.get('Distance', 0):.1f} miles")
+            
+            # Action buttons
+            button_col1, button_col2, button_col3 = st.columns([1, 1, 1])
+            
+            with button_col1:
+                if st.button("💾 Save Program", type="primary", use_container_width=True):
+                    if schedule_name and schedule_name.strip():
+                        success = add_program_to_schedule(program, schedule_name.strip())
+                        if success:
+                            st.success(f"✅ Program saved to '{schedule_name.strip()}' schedule!")
+                            st.session_state.current_schedule = schedule_name.strip()
+                        else:
+                            st.warning("⚠️ Program already exists in this schedule!")
+                        
+                        st.session_state.show_save_popup = False
+                        st.session_state.popup_program_data = None
+                        st.rerun()
+                    else:
+                        st.error("Please enter a schedule name!")
+            
+            with button_col2:
+                if st.button("❌ Cancel", use_container_width=True):
+                    st.session_state.show_save_popup = False
+                    st.session_state.popup_program_data = None
+                    st.rerun()
+            
+            with button_col3:
+                if existing_schedules:
+                    if st.button("🗑️ Delete Schedule", use_container_width=True):
+                        # Show delete confirmation in next iteration
+                        st.session_state.show_delete_confirm = True
     
 except Exception as e:
     st.error(f"Error: {str(e)}")
