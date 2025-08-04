@@ -31,7 +31,7 @@ st.markdown("""
     /* Base styles */
     .main-header {
         font-size: 1.4rem;
-        color: #1E3D59;
+        color: #1E3D59 !important;
         text-align: center;
         margin-bottom: 2rem;
         line-height: 1.2;
@@ -329,17 +329,12 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* Force all inline styled section headers to white in dark mode */
-        div[style*="color: #1E3D59"] {
+        /* Target specific result text styling in dark mode only */
+        body div[style*="font-size: 1.4rem"] {
             color: #ffffff !important;
         }
         
-        /* Target specific result text styling */
-        div[style*="font-size: 1.4rem"] {
-            color: #ffffff !important;
-        }
-        
-        div[style*="font-size: 1.3rem"] {
+        body div[style*="font-size: 1.3rem"] {
             color: #ffffff !important;
         }
     }
@@ -348,6 +343,13 @@ st.markdown("""
     .stApp[data-theme="dark"] .main-header,
     [data-testid="stAppViewContainer"][data-theme="dark"] .main-header {
         color: #ffffff !important;
+    }
+    
+    /* Only target inline styles in dark mode */
+    @media (prefers-color-scheme: dark) {
+        div[style*="color: #1E3D59"] {
+            color: #ffffff !important;
+        }
     }
     
     .stApp[data-theme="dark"] div[style*="color: #1E3D59"],
