@@ -380,42 +380,69 @@ def display_schedule_grid(filtered_df):
     
     st.markdown(html, unsafe_allow_html=True)
     
-    # Add save interface below the schedule grid
-    if st.session_state.current_schedule == "All Programs":
-        st.markdown("---")
-        st.markdown("### 💾 Save Programs to Schedule")
+    # Add individual save buttons for each program in the schedule
+    st.markdown("---")
+    st.markdown("### 💾 Click to Save Programs to Named Schedules")
+    st.info("💡 **Click the heart buttons below to save programs to your named schedules** (e.g., 'Ami 1', 'Mia 3', 'Emma Fall 2024'). The heart icons in the grid above are visual only.")
+    
+    # Create a grid of save buttons that corresponds to the schedule
+    for time_slot in time_slots:
+        time_str = minutes_to_time_str(time_slot)
+        programs_at_time = []
         
-        # Create expandable sections for each time slot that has programs
-        for time_slot in time_slots:
-            time_str = minutes_to_time_str(time_slot)
-            programs_at_time = []
+        # Collect all programs at this time
+        for day in days:
+            programs = programs_by_day_time[day][time_slot]
+            for program in programs:
+                programs_at_time.append((day, program))
+        
+        if programs_at_time:
+            st.markdown(f"**⏰ {time_str}**")
             
-            for day in days:
-                programs = programs_by_day_time[day][time_slot]
-                for program in programs:
-                    programs_at_time.append((day, program))
+            # Create columns for programs at this time
+            cols = st.columns(len(programs_at_time))
             
-            if programs_at_time:
-                with st.expander(f"⏰ {time_str} Programs ({len(programs_at_time)} available)"):
-                    save_cols = st.columns(min(len(programs_at_time), 3))
+            for i, (day, program) in enumerate(programs_at_time):
+                with cols[i]:
+                    program_name = program.get('Program Name', 'N/A')
+                    provider_name = program.get('Provider Name', 'N/A')
+                    category = program.get('Interest Category', '')
+                    icon = get_category_icon(category)
                     
-                    for i, (day, program) in enumerate(programs_at_time):
-                        with save_cols[i % 3]:
-                            program_name = program.get('Program Name', 'N/A')
-                            provider_name = program.get('Provider Name', 'N/A')
-                            category = program.get('Interest Category', '')
-                            icon = get_category_icon(category)
-                            
-                            st.markdown(f"**{icon} {program_name}**")
-                            st.markdown(f"*{provider_name}*")
-                            st.markdown(f"📅 {day}")
-                            
-                            # Save button
-                            if st.button(f"💾 Save", key=f"save_{day}_{time_slot}_{i}"):
-                                # Show save dialog
-                                st.session_state.popup_program_data = program
-                                st.session_state.show_save_popup = True
+                    # Show program info
+                    st.markdown(f"{icon} **{program_name}**")
+                    st.markdown(f"*{provider_name}*")
+                    st.markdown(f"📅 {day}")
+                    
+                    # Check if already saved
+                    is_saved = False
+                    current_schedule = st.session_state.current_schedule
+                    if current_schedule != "All Programs" and current_schedule in st.session_state.saved_schedules:
+                        for saved_prog in st.session_state.saved_schedules[current_schedule]:
+                            if (saved_prog['Program Name'] == program_name and 
+                                saved_prog['Provider Name'] == provider_name):
+                                is_saved = True
+                                break
+                    
+                    # Save/Remove button
+                    if is_saved:
+                        if st.button(f"♥ Saved", key=f"remove_{day}_{time_slot}_{i}", type="secondary"):
+                            # Remove from current schedule
+                            if current_schedule in st.session_state.saved_schedules:
+                                st.session_state.saved_schedules[current_schedule] = [
+                                    p for p in st.session_state.saved_schedules[current_schedule]
+                                    if not (p['Program Name'] == program_name and p['Provider Name'] == provider_name)
+                                ]
+                                st.success(f"Removed {program_name} from {current_schedule}")
                                 st.rerun()
+                    else:
+                        if st.button(f"♡ Save", key=f"save_{day}_{time_slot}_{i}"):
+                            # Show save dialog
+                            st.session_state.popup_program_data = program
+                            st.session_state.show_save_popup = True
+                            st.rerun()
+            
+            st.markdown("---")
 
 # Initialize session state
 if 'selected_days' not in st.session_state:
