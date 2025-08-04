@@ -230,16 +230,15 @@ def filter_programs_by_schedule(filtered_df, schedule_name):
     return filtered_df[mask]
 
 def display_schedule_grid(filtered_df):
-    """Display programs in a weekly schedule grid with dynamic time slots"""
+    """Display programs in a weekly schedule grid with interactive save buttons"""
     if len(filtered_df) == 0:
         return
     
-    # Days of the week (Mon-Fri)
+    # Days of the week (Mon-Fri)  
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     
     # Extract all unique start times from programs
     unique_start_times = set()
-    
     for _, program in filtered_df.iterrows():
         start_time = parse_time(program.get('Start time'))
         if start_time > 0:
@@ -247,10 +246,8 @@ def display_schedule_grid(filtered_df):
     
     # Sort unique start times chronologically
     time_slots = sorted(list(unique_start_times))
-    
-    # If no valid times found, use default
     if not time_slots:
-        time_slots = [14 * 60 + 30, 15 * 60, 15 * 60 + 30, 16 * 60]  # 2:30, 3:00, 3:30, 4:00 PM
+        time_slots = [14 * 60 + 30, 15 * 60, 15 * 60 + 30, 16 * 60]
     
     # Group programs by day and start time
     programs_by_day_time = {}
@@ -263,186 +260,99 @@ def display_schedule_grid(filtered_df):
     for _, program in filtered_df.iterrows():
         day = program.get('Day of the week', '').strip()
         start_time = parse_time(program.get('Start time'))
-        
         if day in programs_by_day_time and start_time in programs_by_day_time[day]:
             programs_by_day_time[day][start_time].append(program)
     
-    # Create the schedule grid
-    html = """
-    <div class="schedule-container">
-        <div class="schedule-grid">
-            <table class="schedule-table">
-                <thead>
-                    <tr>
-                        <th class="time-slot">Start Time</th>"""
+    # Create interactive schedule using Streamlit components
+    st.markdown('<div style="font-size: 1.1rem; font-weight: 600; color: #1E3D59; margin-bottom: 1rem;">📅 Interactive Schedule Grid - Click ♡ to Save Programs</div>', unsafe_allow_html=True)
     
-    for day in days:
-        html += f'<th class="day-header">{day}</th>'
+    # Create header row
+    header_cols = st.columns([1] + [2]*len(days))
+    with header_cols[0]:
+        st.markdown("**Time**")
+    for i, day in enumerate(days):
+        with header_cols[i+1]:
+            st.markdown(f"**{day}**")
     
-    html += """
-                    </tr>
-                </thead>
-                <tbody>"""
-    
-    # Create rows for each unique start time
-    for time_slot in time_slots:
-        time_str = minutes_to_time_str(time_slot)
-        html += f"""
-                    <tr>
-                        <td class="time-slot">{time_str}</td>"""
-        
-        for day in days:
-            html += '<td class="schedule-cell">'
-            
-            # Show all programs that start at this exact time on this day
-            programs = programs_by_day_time[day][time_slot]
-            program_count = len(programs)
-            
-            for i, program in enumerate(programs):
-                program_name = program.get('Program Name', 'N/A')
-                provider_name = program.get('Provider Name', 'N/A')
-                category = program.get('Interest Category', '')
-                distance = program.get('Distance', 0)
-                start_time = program.get('Start time', '')
-                end_time = program.get('End time', '')
-                
-                # Get category icon
-                icon = get_category_icon(category)
-                
-                # Get distance badge info
-                distance_class, distance_text = get_distance_badge_info(distance)
-                
-                # Calculate duration
-                duration_minutes = calculate_duration_minutes(start_time, end_time)
-                duration_str = format_duration(duration_minutes)
-                
-                # Create tooltip with all info
-                tooltip = f"{program_name} - {provider_name}"
-                if start_time and end_time:
-                    tooltip += f" | {start_time} - {end_time}"
-                if duration_minutes > 0:
-                    tooltip += f" | Duration: {format_duration(duration_minutes).strip('()')}"
-                if distance > 0:
-                    tooltip += f" | Distance: {distance:.1f} miles"
-                if category:
-                    tooltip += f" | Category: {category}"
-                
-                # Create unique program identifier for this time slot and day
-                program_id = f"{day}_{time_slot}_{i}"
-                
-                # Create compact program card
-                html += f"""
-                <div class="program-card" title="{tooltip}">
-                    <div class="program-card-content">
-                        <div class="category-icon">{icon}</div>
-                        <div class="program-info">
-                            <div class="program-title">{program_name}</div>
-                        </div>
-                        <div class="program-actions">"""
-                
-                # Add distance badge if available
-                if distance_class and distance_text:
-                    html += f'<div class="distance-badge {distance_class}">{distance_text}</div>'
-                
-                # Add heart icon as clickable span for now (will enhance later)
-                is_saved = False
-                current_schedule = st.session_state.current_schedule
-                if current_schedule != "All Programs" and current_schedule in st.session_state.saved_schedules:
-                    # Check if program is already saved
-                    for saved_prog in st.session_state.saved_schedules[current_schedule]:
-                        if (saved_prog['Program Name'] == program_name and 
-                            saved_prog['Provider Name'] == provider_name):
-                            is_saved = True
-                            break
-                
-                heart_icon = "♥" if is_saved else "♡"
-                heart_class = "active" if is_saved else ""
-                
-                html += f'''
-                            <span class="favorite-icon {heart_class}" title="{'Remove from schedule' if is_saved else 'Save to schedule'}">{heart_icon}</span>
-                        </div>
-                    </div>
-                </div>'''
-            
-            # Add overflow indicator if many programs
-            if program_count >= 6:
-                html += f'<div class="overflow-indicator">↕ {program_count}</div>'
-            
-            html += '</td>'
-        
-        html += '</tr>'
-    
-    html += """
-                </tbody>
-            </table>
-        </div>
-    </div>"""
-    
-    st.markdown(html, unsafe_allow_html=True)
-    
-    # Add individual save buttons for each program in the schedule
     st.markdown("---")
-    st.markdown("### 💾 Click to Save Programs to Named Schedules")
-    st.info("💡 **Click the heart buttons below to save programs to your named schedules** (e.g., 'Ami 1', 'Mia 3', 'Emma Fall 2024'). The heart icons in the grid above are visual only.")
     
-    # Create a grid of save buttons that corresponds to the schedule
+    # Create rows for each time slot
     for time_slot in time_slots:
         time_str = minutes_to_time_str(time_slot)
-        programs_at_time = []
         
-        # Collect all programs at this time
-        for day in days:
-            programs = programs_by_day_time[day][time_slot]
-            for program in programs:
-                programs_at_time.append((day, program))
+        # Create columns for this time slot
+        time_cols = st.columns([1] + [2]*len(days))
         
-        if programs_at_time:
-            st.markdown(f"**⏰ {time_str}**")
-            
-            # Create columns for programs at this time
-            cols = st.columns(len(programs_at_time))
-            
-            for i, (day, program) in enumerate(programs_at_time):
-                with cols[i]:
-                    program_name = program.get('Program Name', 'N/A')
-                    provider_name = program.get('Provider Name', 'N/A')
-                    category = program.get('Interest Category', '')
-                    icon = get_category_icon(category)
-                    
-                    # Show program info
-                    st.markdown(f"{icon} **{program_name}**")
-                    st.markdown(f"*{provider_name}*")
-                    st.markdown(f"📅 {day}")
-                    
-                    # Check if already saved
-                    is_saved = False
-                    current_schedule = st.session_state.current_schedule
-                    if current_schedule != "All Programs" and current_schedule in st.session_state.saved_schedules:
-                        for saved_prog in st.session_state.saved_schedules[current_schedule]:
-                            if (saved_prog['Program Name'] == program_name and 
-                                saved_prog['Provider Name'] == provider_name):
-                                is_saved = True
-                                break
-                    
-                    # Save/Remove button
-                    if is_saved:
-                        if st.button(f"♥ Saved", key=f"remove_{day}_{time_slot}_{i}", type="secondary"):
-                            # Remove from current schedule
-                            if current_schedule in st.session_state.saved_schedules:
-                                st.session_state.saved_schedules[current_schedule] = [
-                                    p for p in st.session_state.saved_schedules[current_schedule]
-                                    if not (p['Program Name'] == program_name and p['Provider Name'] == provider_name)
-                                ]
-                                st.success(f"Removed {program_name} from {current_schedule}")
-                                st.rerun()
-                    else:
-                        if st.button(f"♡ Save", key=f"save_{day}_{time_slot}_{i}"):
-                            # Show save dialog
-                            st.session_state.popup_program_data = program
-                            st.session_state.show_save_popup = True
-                            st.rerun()
-            
-            st.markdown("---")
+        # Time column
+        with time_cols[0]:
+            st.markdown(f"**{time_str}**")
+        
+        # Program columns for each day
+        for day_idx, day in enumerate(days):
+            with time_cols[day_idx + 1]:
+                programs = programs_by_day_time[day][time_slot]
+                
+                if programs:
+                    # Create container for programs at this time/day
+                    for i, program in enumerate(programs):
+                        program_name = program.get('Program Name', 'N/A')
+                        provider_name = program.get('Provider Name', 'N/A')
+                        category = program.get('Interest Category', '')
+                        distance = program.get('Distance', 0)
+                        
+                        # Get category icon and distance info
+                        icon = get_category_icon(category) 
+                        distance_class, distance_text = get_distance_badge_info(distance)
+                        
+                        # Create compact program display with save button
+                        prog_container = st.container()
+                        with prog_container:
+                            prog_col1, prog_col2 = st.columns([3, 1])
+                            
+                            with prog_col1:
+                                # Program info
+                                st.markdown(f"<div style='font-size: 0.7rem; font-weight: 600; color: #1E3D59; line-height: 1.1;'>{icon} {program_name}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='font-size: 0.6rem; color: #666; line-height: 1.1;'>{provider_name}</div>", unsafe_allow_html=True)
+                                if distance_text:
+                                    badge_color = "#4CAF50" if "close" in distance_class else "#FF9800" if "medium" in distance_class else "#f44336"
+                                    st.markdown(f"<div style='font-size: 0.55rem; background: {badge_color}; color: white; padding: 1px 4px; border-radius: 3px; display: inline-block; margin-top: 2px;'>{distance_text}</div>", unsafe_allow_html=True)
+                            
+                            with prog_col2:
+                                # Check if program is saved
+                                is_saved = False
+                                current_schedule = st.session_state.current_schedule
+                                if current_schedule != "All Programs" and current_schedule in st.session_state.saved_schedules:
+                                    for saved_prog in st.session_state.saved_schedules[current_schedule]:
+                                        if (saved_prog['Program Name'] == program_name and 
+                                            saved_prog['Provider Name'] == provider_name):
+                                            is_saved = True
+                                            break
+                                
+                                # Interactive save/remove button
+                                button_key = f"heart_{day}_{time_slot}_{i}"
+                                
+                                if is_saved:
+                                    if st.button("♥", key=button_key, help="Remove from schedule", type="secondary"):
+                                        # Remove from current schedule
+                                        if current_schedule in st.session_state.saved_schedules:
+                                            st.session_state.saved_schedules[current_schedule] = [
+                                                p for p in st.session_state.saved_schedules[current_schedule]
+                                                if not (p['Program Name'] == program_name and p['Provider Name'] == provider_name)
+                                            ]
+                                            st.success(f"Removed {program_name} from {current_schedule}")
+                                            st.rerun()
+                                else:
+                                    if st.button("♡", key=button_key, help="Save to schedule"):
+                                        # Show save dialog
+                                        st.session_state.popup_program_data = program
+                                        st.session_state.show_save_popup = True
+                                        st.rerun()
+                            
+                            st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
+                else:
+                    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        
+        st.markdown("---")
 
 # Initialize session state
 if 'selected_days' not in st.session_state:
