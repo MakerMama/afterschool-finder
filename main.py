@@ -92,52 +92,65 @@ def minutes_to_time_str(minutes):
     else:
         return f"{hour-12}:{minute:02d} PM"
 
+def calculate_duration_minutes(start_time, end_time):
+    """Calculate duration between start and end times in minutes"""
+    start_minutes = parse_time(start_time)
+    end_minutes = parse_time(end_time)
+    if start_minutes > 0 and end_minutes > 0 and end_minutes > start_minutes:
+        return end_minutes - start_minutes
+    return 0
+
+def format_duration(minutes):
+    """Format duration in minutes to readable string"""
+    if minutes <= 0:
+        return ""
+    elif minutes < 60:
+        return f"({minutes} min)"
+    else:
+        hours = minutes // 60
+        mins = minutes % 60
+        if mins == 0:
+            return f"({hours}h)"
+        else:
+            return f"({hours}h {mins}m)"
+
 def display_schedule_grid(filtered_df):
-    """Display programs in a weekly schedule grid"""
+    """Display programs in a weekly schedule grid with dynamic time slots"""
     if len(filtered_df) == 0:
         return
     
     # Days of the week (Mon-Fri)
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     
-    # Get time range from programs
-    start_times = []
-    end_times = []
+    # Extract all unique start times from programs
+    unique_start_times = set()
     
     for _, program in filtered_df.iterrows():
         start_time = parse_time(program.get('Start time'))
-        end_time = parse_time(program.get('End time'))
         if start_time > 0:
-            start_times.append(start_time)
-        if end_time > 0:
-            end_times.append(end_time)
+            unique_start_times.add(start_time)
     
-    # Default to 2:30 PM - 6:00 PM if no times found
-    if not start_times:
-        start_times = [14 * 60 + 30]  # 2:30 PM
-    if not end_times:
-        end_times = [18 * 60]  # 6:00 PM
+    # Sort unique start times chronologically
+    time_slots = sorted(list(unique_start_times))
     
-    # Create time slots (30-minute intervals)
-    earliest = min(start_times)
-    latest = max(end_times)
+    # If no valid times found, use default
+    if not time_slots:
+        time_slots = [14 * 60 + 30, 15 * 60, 15 * 60 + 30, 16 * 60]  # 2:30, 3:00, 3:30, 4:00 PM
     
-    # Round to nearest 30-minute slot
-    earliest = (earliest // 30) * 30
-    latest = ((latest + 29) // 30) * 30
+    # Group programs by day and start time
+    programs_by_day_time = {}
+    for day in days:
+        programs_by_day_time[day] = {}
+        for time_slot in time_slots:
+            programs_by_day_time[day][time_slot] = []
     
-    time_slots = []
-    current_time = earliest
-    while current_time < latest:
-        time_slots.append(current_time)
-        current_time += 30
-    
-    # Group programs by day
-    programs_by_day = {day: [] for day in days}
+    # Populate programs into their exact start time slots
     for _, program in filtered_df.iterrows():
         day = program.get('Day of the week', '').strip()
-        if day in programs_by_day:
-            programs_by_day[day].append(program)
+        start_time = parse_time(program.get('Start time'))
+        
+        if day in programs_by_day_time and start_time in programs_by_day_time[day]:
+            programs_by_day_time[day][start_time].append(program)
     
     # Create the schedule grid
     html = """
@@ -146,7 +159,7 @@ def display_schedule_grid(filtered_df):
             <table class="schedule-table">
                 <thead>
                     <tr>
-                        <th class="time-slot">Time</th>"""
+                        <th class="time-slot">Start Time</th>"""
     
     for day in days:
         html += f'<th class="day-header">{day}</th>'
@@ -156,7 +169,7 @@ def display_schedule_grid(filtered_df):
                 </thead>
                 <tbody>"""
     
-    # Create rows for each time slot
+    # Create rows for each unique start time
     for time_slot in time_slots:
         time_str = minutes_to_time_str(time_slot)
         html += f"""
@@ -166,27 +179,38 @@ def display_schedule_grid(filtered_df):
         for day in days:
             html += '<td class="schedule-cell">'
             
-            # Find programs for this day and time slot
-            for program in programs_by_day[day]:
-                program_start = parse_time(program.get('Start time'))
-                program_end = parse_time(program.get('End time'))
+            # Show all programs that start at this exact time on this day
+            programs = programs_by_day_time[day][time_slot]
+            for program in programs:
+                program_name = program.get('Program Name', 'N/A')
+                provider_name = program.get('Provider Name', 'N/A')
+                start_time = program.get('Start time', '')
+                end_time = program.get('End time', '')
                 
-                # Check if program overlaps with this time slot
-                if program_start <= time_slot < program_end:
-                    program_name = program.get('Program Name', 'N/A')
-                    provider_name = program.get('Provider Name', 'N/A')
-                    
-                    # Truncate names for display
-                    if len(program_name) > 15:
-                        program_name = program_name[:12] + "..."
-                    if len(provider_name) > 12:
-                        provider_name = provider_name[:9] + "..."
-                    
-                    html += f"""
-                    <div class="program-card" title="{program.get('Program Name', 'N/A')} - {program.get('Provider Name', 'N/A')}">
-                        <div class="program-name">{program_name}</div>
-                        <div class="provider-name">{provider_name}</div>
-                    </div>"""
+                # Calculate duration
+                duration_minutes = calculate_duration_minutes(start_time, end_time)
+                duration_str = format_duration(duration_minutes)
+                
+                # Create display name with duration
+                display_name = program_name
+                if len(display_name) > 12:
+                    display_name = display_name[:9] + "..."
+                
+                # Create display provider with duration
+                display_provider = provider_name
+                if len(display_provider) > 10:
+                    display_provider = display_provider[:7] + "..."
+                
+                # Full tooltip with all info
+                tooltip = f"{program.get('Program Name', 'N/A')} - {program.get('Provider Name', 'N/A')}"
+                if duration_minutes > 0:
+                    tooltip += f" | {start_time} - {end_time} | Duration: {format_duration(duration_minutes).strip('()')}"
+                
+                html += f"""
+                <div class="program-card" title="{tooltip}">
+                    <div class="program-name">{display_name} {duration_str}</div>
+                    <div class="provider-name">{display_provider}</div>
+                </div>"""
             
             html += '</td>'
         
@@ -505,26 +529,26 @@ st.markdown("""
     .schedule-cell {
         border: 1px solid #e9ecef;
         padding: 0.25rem;
-        min-height: 60px;
+        min-height: 50px;
         width: 120px;
         position: relative;
         background: #fafafa;
         vertical-align: top;
+        height: auto;
     }
     
     .program-card {
         background: #4CAF50;
         color: white;
-        padding: 0.25rem 0.5rem;
+        padding: 0.3rem 0.5rem;
         border-radius: 4px;
         font-size: 0.7rem;
         font-weight: 500;
-        margin: 1px 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        margin: 2px 0;
         cursor: pointer;
         transition: all 0.2s;
-        line-height: 1.2;
+        line-height: 1.1;
+        word-wrap: break-word;
     }
     
     .program-card:hover {
@@ -534,11 +558,12 @@ st.markdown("""
     
     .program-card .program-name {
         font-weight: 600;
-        margin-bottom: 1px;
+        margin-bottom: 2px;
+        font-size: 0.7rem;
     }
     
     .program-card .provider-name {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         opacity: 0.9;
     }
     
