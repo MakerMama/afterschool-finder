@@ -150,6 +150,85 @@ def get_distance_badge_info(distance):
     else:
         return "distance-far", f"{distance:.1f}mi"
 
+def add_program_to_schedule(program, schedule_name):
+    """Add a program to a named schedule"""
+    if schedule_name not in st.session_state.saved_schedules:
+        st.session_state.saved_schedules[schedule_name] = []
+    
+    # Create program data dictionary
+    program_data = {
+        'Program Name': program.get('Program Name', 'N/A'),
+        'Provider Name': program.get('Provider Name', 'N/A'),
+        'Day of the week': program.get('Day of the week', ''),
+        'Start time': program.get('Start time', ''),
+        'End time': program.get('End time', ''),
+        'Interest Category': program.get('Interest Category', ''),
+        'Distance': program.get('Distance', 0),
+        'Address': program.get('Address', ''),
+        'Cost': program.get('Cost', 0),
+        'Website': program.get('Website', ''),
+        'Contact Phone': program.get('Contact Phone', ''),
+    }
+    
+    # Check if program already exists in schedule
+    existing_programs = st.session_state.saved_schedules[schedule_name]
+    for existing in existing_programs:
+        if (existing['Program Name'] == program_data['Program Name'] and 
+            existing['Provider Name'] == program_data['Provider Name']):
+            return False  # Already exists
+    
+    st.session_state.saved_schedules[schedule_name].append(program_data)
+    return True
+
+def detect_schedule_conflicts(schedule_name):
+    """Detect time conflicts within a schedule"""
+    if schedule_name not in st.session_state.saved_schedules:
+        return []
+    
+    programs = st.session_state.saved_schedules[schedule_name]
+    conflicts = []
+    
+    for i, prog1 in enumerate(programs):
+        for j, prog2 in enumerate(programs[i+1:], i+1):
+            # Check if same day
+            if prog1['Day of the week'] == prog2['Day of the week']:
+                start1 = parse_time(prog1['Start time'])
+                end1 = parse_time(prog1['End time'])
+                start2 = parse_time(prog2['Start time'])
+                end2 = parse_time(prog2['End time'])
+                
+                # Check for time overlap
+                if (start1 < end2 and start2 < end1):
+                    conflicts.append({
+                        'day': prog1['Day of the week'],
+                        'program1': prog1['Program Name'],
+                        'program2': prog2['Program Name'],
+                        'time1': f"{prog1['Start time']} - {prog1['End time']}",
+                        'time2': f"{prog2['Start time']} - {prog2['End time']}"
+                    })
+    
+    return conflicts
+
+def filter_programs_by_schedule(filtered_df, schedule_name):
+    """Filter programs to show only those in a specific schedule"""
+    if schedule_name == "All Programs" or schedule_name not in st.session_state.saved_schedules:
+        return filtered_df
+    
+    saved_programs = st.session_state.saved_schedules[schedule_name]
+    saved_program_keys = set()
+    
+    for prog in saved_programs:
+        key = f"{prog['Program Name']}|{prog['Provider Name']}"
+        saved_program_keys.add(key)
+    
+    # Filter the dataframe to only include saved programs
+    mask = filtered_df.apply(lambda row: 
+        f"{row.get('Program Name', 'N/A')}|{row.get('Provider Name', 'N/A')}" in saved_program_keys, 
+        axis=1
+    )
+    
+    return filtered_df[mask]
+
 def display_schedule_grid(filtered_df):
     """Display programs in a weekly schedule grid with dynamic time slots"""
     if len(filtered_df) == 0:
@@ -263,8 +342,9 @@ def display_schedule_grid(filtered_df):
                     html += f'<div class="distance-badge {distance_class}">{distance_text}</div>'
                 
                 # Add favorite icon
+                program_json = f"{program_name}|{provider_name}|{category}|{distance}"
                 html += f'''
-                            <div class="favorite-icon" onclick="toggleFavorite(event, '{program_name}')" title="Save to favorites">♡</div>
+                            <div class="favorite-icon" onclick="toggleFavorite(event, '{program_json}')" title="Save to schedule">♡</div>
                         </div>
                     </div>
                 </div>'''
@@ -306,6 +386,14 @@ if 'submitted' not in st.session_state:
     st.session_state.submitted = False
 if 'view_mode' not in st.session_state:
     st.session_state.view_mode = "List View"
+if 'saved_schedules' not in st.session_state:
+    st.session_state.saved_schedules = {}
+if 'current_schedule' not in st.session_state:
+    st.session_state.current_schedule = "All Programs"
+if 'show_save_popup' not in st.session_state:
+    st.session_state.show_save_popup = False
+if 'popup_program_data' not in st.session_state:
+    st.session_state.popup_program_data = None
 
 # Custom CSS for styling with mobile responsiveness
 st.markdown("""
@@ -720,6 +808,153 @@ st.markdown("""
         font-weight: 600;
     }
     
+    /* Schedule Management Styles */
+    .schedule-selector {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        border: 1px solid #e9ecef;
+    }
+    
+    .schedule-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .schedule-tab {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        background: white;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .schedule-tab.active {
+        background: #1E3D59;
+        color: white;
+        border-color: #1E3D59;
+    }
+    
+    .schedule-tab:hover {
+        background: #f0f0f0;
+    }
+    
+    .schedule-tab.active:hover {
+        background: #2a5490;
+    }
+    
+    .schedule-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .conflict-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+        color: #856404;
+        font-size: 0.9rem;
+    }
+    
+    .conflict-warning .conflict-icon {
+        color: #f39c12;
+        margin-right: 0.5rem;
+    }
+    
+    .save-popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .save-popup {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .save-popup h3 {
+        margin: 0 0 1rem 0;
+        color: #1E3D59;
+        font-size: 1.2rem;
+    }
+    
+    .save-popup .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .save-popup label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .save-popup input,
+    .save-popup select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+    
+    .save-popup-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+    }
+    
+    .save-popup button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .save-popup .btn-primary {
+        background: #1E3D59;
+        color: white;
+    }
+    
+    .save-popup .btn-primary:hover {
+        background: #2a5490;
+    }
+    
+    .save-popup .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .save-popup .btn-secondary:hover {
+        background: #5a6268;
+    }
+    
     /* Mobile schedule adjustments */
     @media (max-width: 768px) {
         .schedule-table {
@@ -874,22 +1109,114 @@ st.markdown("""
         alert('Program Details: ' + programName + '\\n\\nClick functionality implemented!\\nIn a full version, this would show detailed program information.');
     }
     
-    function toggleFavorite(event, programName) {
+    function toggleFavorite(event, programData) {
         event.stopPropagation(); // Prevent card click
-        const heartIcon = event.target;
         
-        if (heartIcon.classList.contains('active')) {
-            heartIcon.classList.remove('active');
-            heartIcon.innerHTML = '♡';
-            heartIcon.title = 'Save to favorites';
-        } else {
-            heartIcon.classList.add('active');
-            heartIcon.innerHTML = '♥';
-            heartIcon.title = 'Remove from favorites';
+        // Show save to schedule popup
+        showSavePopup(programData);
+    }
+    
+    function showSavePopup(programData) {
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'save-popup-overlay';
+        overlay.onclick = (e) => {
+            if (e.target === overlay) closeSavePopup();
+        };
+        
+        // Get existing schedules from Streamlit session state (placeholder)
+        const existingSchedules = ['Ami 1', 'Mia 3', 'Emma Fall 2024']; // This would come from session state
+        
+        // Create popup content
+        overlay.innerHTML = `
+            <div class="save-popup">
+                <h3>Save to Schedule</h3>
+                <div class="form-group">
+                    <label for="schedule-select">Select Schedule:</label>
+                    <select id="schedule-select">
+                        <option value="">-- Create New Schedule --</option>
+                        ${existingSchedules.map(schedule => `<option value="${schedule}">${schedule}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="schedule-name">Schedule Name:</label>
+                    <input type="text" id="schedule-name" placeholder="e.g., Ami 1, Mia 3, Emma Fall 2024" />
+                </div>
+                <div class="save-popup-actions">
+                    <button class="btn-secondary" onclick="closeSavePopup()">Cancel</button>
+                    <button class="btn-primary" onclick="saveToSchedule('${programData}')">Save Program</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Handle schedule selection
+        const select = document.getElementById('schedule-select');
+        const nameInput = document.getElementById('schedule-name');
+        
+        select.onchange = () => {
+            if (select.value) {
+                nameInput.value = select.value;
+                nameInput.disabled = true;
+            } else {
+                nameInput.value = '';
+                nameInput.disabled = false;
+                nameInput.focus();
+            }
+        };
+    }
+    
+    function closeSavePopup() {
+        const overlay = document.querySelector('.save-popup-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+    
+    function saveToSchedule(programData) {
+        const scheduleName = document.getElementById('schedule-name').value.trim();
+        
+        if (!scheduleName) {
+            alert('Please enter a schedule name');
+            return;
         }
         
-        // In a full version, this would save to localStorage or backend
-        console.log('Toggled favorite for:', programName);
+        // In a full implementation, this would update Streamlit session state
+        console.log('Saving program to schedule:', scheduleName, programData);
+        
+        // Show success message
+        alert(`Program saved to "${scheduleName}" schedule!\\n\\nIn a full version, this would:\\n- Update the session state\\n- Add conflict detection\\n- Refresh the schedule view`);
+        
+        closeSavePopup();
+    }
+    
+    function switchSchedule(scheduleName) {
+        console.log('Switching to schedule:', scheduleName);
+        // This would trigger a Streamlit rerun with the new schedule
+    }
+    
+    function deleteSchedule(scheduleName) {
+        if (confirm(`Are you sure you want to delete the "${scheduleName}" schedule?`)) {
+            console.log('Deleting schedule:', scheduleName);
+            // This would update session state and rerun
+        }
+    }
+    
+    function duplicateSchedule(scheduleName) {
+        const newName = prompt(`Enter name for duplicate of "${scheduleName}":`, scheduleName + ' Copy');
+        if (newName && newName.trim()) {
+            console.log('Duplicating schedule:', scheduleName, 'to', newName.trim());
+            // This would update session state and rerun
+        }
+    }
+    
+    function renameSchedule(scheduleName) {
+        const newName = prompt(`Enter new name for "${scheduleName}":`, scheduleName);
+        if (newName && newName.trim() && newName.trim() !== scheduleName) {
+            console.log('Renaming schedule:', scheduleName, 'to', newName.trim());
+            // This would update session state and rerun
+        }
     }
     </script>
 """, unsafe_allow_html=True)
@@ -1042,6 +1369,58 @@ try:
             result_text = "🎉 Found 1 perfect program for your child!"
         
         st.markdown(f'<div style="color: #1E3D59; font-size: 1.4rem; margin: 1rem 0 0.5rem 0; text-align: center; padding: 0.5rem; font-weight: 600;">{result_text}</div>', unsafe_allow_html=True)
+        
+        # Schedule selector
+        if len(filtered_df) > 0:
+            st.markdown('<div class="schedule-selector">', unsafe_allow_html=True)
+            
+            # Create schedule tabs
+            schedule_names = ["All Programs"] + list(st.session_state.saved_schedules.keys())
+            
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.markdown("**My Schedules:**")
+                schedule_cols = st.columns(min(len(schedule_names), 4))
+                
+                for i, schedule_name in enumerate(schedule_names):
+                    with schedule_cols[i % 4]:
+                        if schedule_name == "All Programs":
+                            button_text = f"🔍 All Programs"
+                        else:
+                            program_count = len(st.session_state.saved_schedules[schedule_name])
+                            button_text = f"📋 {schedule_name} ({program_count})"
+                        
+                        if st.button(button_text, key=f"schedule_{i}", use_container_width=True):
+                            st.session_state.current_schedule = schedule_name
+                            st.rerun()
+            
+            with col2:
+                st.markdown("**Actions:**")
+                if st.button("➕ New Schedule", key="new_schedule"):
+                    new_name = st.text_input("Schedule name:", key="new_schedule_name", placeholder="e.g., Ami 1, Mia 3")
+                    if new_name:
+                        st.session_state.saved_schedules[new_name] = []
+                        st.session_state.current_schedule = new_name
+                        st.rerun()
+            
+            # Show current schedule info
+            current_schedule_display = st.session_state.current_schedule
+            if current_schedule_display != "All Programs":
+                conflicts = detect_schedule_conflicts(current_schedule_display)
+                if conflicts:
+                    conflict_text = f"⚠️ {len(conflicts)} scheduling conflicts detected in {current_schedule_display}"
+                    st.markdown(f'<div class="conflict-warning"><span class="conflict-icon">⚠️</span>{conflict_text}</div>', unsafe_allow_html=True)
+                    
+                    for conflict in conflicts:
+                        st.warning(f"**{conflict['day']}**: {conflict['program1']} ({conflict['time1']}) overlaps with {conflict['program2']} ({conflict['time2']})")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Filter programs by current schedule
+            display_df = filter_programs_by_schedule(filtered_df, st.session_state.current_schedule)
+            
+            # Update filtered_df for display
+            filtered_df = display_df
         
         # View toggle buttons
         if len(filtered_df) > 0:
