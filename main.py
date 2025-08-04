@@ -32,12 +32,13 @@ st.markdown("""
     .main-header,
     h1.main-header,
     .stMarkdown .main-header {
-        font-size: 1.4rem !important;
+        font-size: 2.2rem !important;
         color: #1E3D59 !important;
         text-align: center !important;
         margin-bottom: 2rem !important;
         line-height: 1.2 !important;
         white-space: nowrap !important;
+        font-weight: 700 !important;
     }
     
     .section-header {
@@ -154,9 +155,11 @@ st.markdown("""
     
     /* Mobile-first responsive design */
     @media (max-width: 768px) {
-        .main-header {
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
+        .main-header,
+        h1.main-header,
+        .stMarkdown .main-header {
+            font-size: 1.8rem !important;
+            margin-bottom: 1.5rem !important;
         }
         
         /* Form takes full width on mobile */
@@ -211,8 +214,10 @@ st.markdown("""
     }
     
     @media (max-width: 480px) {
-        .main-header {
-            font-size: 1.0rem;
+        .main-header,
+        h1.main-header,
+        .stMarkdown .main-header {
+            font-size: 1.5rem !important;
         }
         
         div.stForm > div[data-testid="stForm"] {
@@ -362,7 +367,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # App header
-st.markdown("<h1 class='main-header' style='font-size: 1.4rem; color: #1E3D59 !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; white-space: nowrap;'>📚 Find Perfect After-School Programs</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-header' style='font-size: 2.2rem; color: #1E3D59 !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; white-space: nowrap; font-weight: 700;'>📚 Find Perfect After-School Programs</h1>", unsafe_allow_html=True)
 
 # Load data
 try:
