@@ -229,6 +229,93 @@ def filter_programs_by_schedule(filtered_df, schedule_name):
     
     return filtered_df[mask]
 
+@st.dialog("💾 Save Program to Schedule")
+def save_program_dialog():
+    """Modal dialog for saving programs to schedules"""
+    if st.session_state.popup_program_data is None:
+        st.error("No program data available")
+        return
+    
+    program = st.session_state.popup_program_data
+    program_name = program.get('Program Name', 'N/A')
+    
+    # Two column layout
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("### Select Schedule")
+        
+        # Schedule selection
+        existing_schedules = list(st.session_state.saved_schedules.keys())
+        schedule_options = ["-- Create New Schedule --"] + existing_schedules
+        
+        selected_option = st.selectbox(
+            "Choose a schedule:",
+            options=schedule_options,
+            key="modal_schedule_selectbox"
+        )
+        
+        # Schedule name input
+        if selected_option == "-- Create New Schedule --":
+            schedule_name = st.text_input(
+                "Schedule Name:",
+                placeholder="e.g., Ami 1, Mia 3, Emma Fall 2024",
+                key="modal_schedule_input"
+            )
+        else:
+            schedule_name = selected_option
+            st.info(f"Adding to: **{schedule_name}**")
+    
+    with col2:
+        st.markdown("### Program Info")
+        category = program.get('Interest Category', 'N/A')
+        icon = get_category_icon(category)
+        
+        st.markdown(f"**{icon} {program_name}**")
+        st.write(f"📍 {program.get('Provider Name', 'N/A')}")
+        st.write(f"📅 {program.get('Day of the week', 'N/A')}")
+        st.write(f"⏰ {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}")
+        
+        if program.get('Distance', 0) > 0:
+            st.write(f"🚗 {program.get('Distance', 0):.1f} miles")
+        
+        if program.get('Cost', 0) > 0:
+            st.write(f"💰 ${program.get('Cost', 0):.2f}")
+    
+    st.markdown("---")
+    
+    # Action buttons
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        if st.button("💾 Save Program", type="primary", use_container_width=True):
+            if schedule_name and schedule_name.strip():
+                success = add_program_to_schedule(program, schedule_name.strip())
+                if success:
+                    st.success(f"✅ Program saved to '{schedule_name.strip()}' schedule!")
+                    st.session_state.current_schedule = schedule_name.strip()
+                    
+                    # Clear popup state and close modal
+                    st.session_state.show_save_popup = False
+                    st.session_state.popup_program_data = None
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Program already exists in this schedule!")
+            else:
+                st.error("Please enter a schedule name!")
+    
+    with col2:
+        if st.button("❌ Cancel", use_container_width=True):
+            st.session_state.show_save_popup = False
+            st.session_state.popup_program_data = None
+            st.rerun()
+    
+    with col3:
+        if existing_schedules:
+            if st.button("🗑️ Manage Schedules", use_container_width=True):
+                st.info("Schedule management coming soon!")
+                # Could expand this to show schedule management options
+
 def display_schedule_grid(filtered_df):
     """Display programs in a weekly schedule grid with interactive save buttons"""
     if len(filtered_df) == 0:
@@ -343,10 +430,9 @@ def display_schedule_grid(filtered_df):
                                             st.rerun()
                                 else:
                                     if st.button("♡", key=button_key, help="Save to schedule"):
-                                        # Show save dialog
+                                        # Set program data and trigger modal
                                         st.session_state.popup_program_data = program
-                                        st.session_state.show_save_popup = True
-                                        st.rerun()
+                                        save_program_dialog()
                             
                             st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
                 else:
@@ -1512,75 +1598,7 @@ try:
         else:
             st.info("💡 **Tips for better results:**\n- Try increasing the distance range\n- Select fewer interest categories\n- Adjust the time range\n- Check more days of the week")
         
-        # Save Program Popup
-        if st.session_state.show_save_popup and st.session_state.popup_program_data is not None:
-            program = st.session_state.popup_program_data
-            
-            st.markdown("---")
-            st.markdown(f"### 💾 Save '{program.get('Program Name', 'N/A')}' to Schedule")
-            
-            col1, col2 = st.columns([2, 1])
-            
-            with col1:
-                # Schedule selection
-                existing_schedules = list(st.session_state.saved_schedules.keys())
-                schedule_options = ["-- Create New Schedule --"] + existing_schedules
-                
-                selected_option = st.selectbox(
-                    "Select Schedule:",
-                    options=schedule_options,
-                    key="schedule_selectbox"
-                )
-                
-                # Schedule name input
-                if selected_option == "-- Create New Schedule --":
-                    schedule_name = st.text_input(
-                        "Schedule Name:",
-                        placeholder="e.g., Ami 1, Mia 3, Emma Fall 2024",
-                        key="new_schedule_input"
-                    )
-                else:
-                    schedule_name = selected_option
-                    st.write(f"Adding to existing schedule: **{schedule_name}**")
-            
-            with col2:
-                st.markdown("**Program Info:**")
-                st.write(f"🎨 {program.get('Interest Category', 'N/A')}")
-                st.write(f"📅 {program.get('Day of the week', 'N/A')}")
-                st.write(f"⏰ {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}")
-                if program.get('Distance', 0) > 0:
-                    st.write(f"📍 {program.get('Distance', 0):.1f} miles")
-            
-            # Action buttons
-            button_col1, button_col2, button_col3 = st.columns([1, 1, 1])
-            
-            with button_col1:
-                if st.button("💾 Save Program", type="primary", use_container_width=True):
-                    if schedule_name and schedule_name.strip():
-                        success = add_program_to_schedule(program, schedule_name.strip())
-                        if success:
-                            st.success(f"✅ Program saved to '{schedule_name.strip()}' schedule!")
-                            st.session_state.current_schedule = schedule_name.strip()
-                        else:
-                            st.warning("⚠️ Program already exists in this schedule!")
-                        
-                        st.session_state.show_save_popup = False
-                        st.session_state.popup_program_data = None
-                        st.rerun()
-                    else:
-                        st.error("Please enter a schedule name!")
-            
-            with button_col2:
-                if st.button("❌ Cancel", use_container_width=True):
-                    st.session_state.show_save_popup = False
-                    st.session_state.popup_program_data = None
-                    st.rerun()
-            
-            with button_col3:
-                if existing_schedules:
-                    if st.button("🗑️ Delete Schedule", use_container_width=True):
-                        # Show delete confirmation in next iteration
-                        st.session_state.show_delete_confirm = True
+        # Modal dialogs are triggered by button clicks and handled by @st.dialog decorator
     
 except Exception as e:
     st.error(f"Error: {str(e)}")
