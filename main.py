@@ -290,6 +290,10 @@ st.markdown("""
     
     /* Dark mode compatibility */
     @media (prefers-color-scheme: dark) {
+        .main-header {
+            color: #ffffff !important;
+        }
+        
         .form-section {
             background: #262730;
             border-color: #404040;
@@ -308,7 +312,7 @@ st.markdown("""
         
         .results-header {
             background: transparent;
-            color: #ffffff;
+            color: #ffffff !important;
             border: none;
         }
         
@@ -316,7 +320,7 @@ st.markdown("""
         div.section-header,
         .stMarkdown .section-header {
             color: #ffffff !important;
-            border-color: #555;
+            border-color: #555 !important;
         }
         
         .section-header *,
@@ -324,6 +328,31 @@ st.markdown("""
         .stMarkdown .section-header * {
             color: #ffffff !important;
         }
+        
+        /* Force all inline styled section headers to white in dark mode */
+        div[style*="color: #1E3D59"] {
+            color: #ffffff !important;
+        }
+        
+        /* Target specific result text styling */
+        div[style*="font-size: 1.4rem"] {
+            color: #ffffff !important;
+        }
+        
+        div[style*="font-size: 1.3rem"] {
+            color: #ffffff !important;
+        }
+    }
+    
+    /* Streamlit dark theme specific overrides */
+    .stApp[data-theme="dark"] .main-header,
+    [data-testid="stAppViewContainer"][data-theme="dark"] .main-header {
+        color: #ffffff !important;
+    }
+    
+    .stApp[data-theme="dark"] div[style*="color: #1E3D59"],
+    [data-testid="stAppViewContainer"][data-theme="dark"] div[style*="color: #1E3D59"] {
+        color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
