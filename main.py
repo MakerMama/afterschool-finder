@@ -810,48 +810,54 @@ st.markdown("""
         color: #262730 !important;
     }
     
-    /* Fix button contrast issues */
+    /* Fix button contrast with light backgrounds */
     .stButton button {
-        background-color: #1E3D59 !important;
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #1E3D59 !important;
         border: 2px solid #1E3D59 !important;
         font-weight: 600 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
     
     .stButton button:hover {
-        background-color: #2a5490 !important;
-        border-color: #2a5490 !important;
-        color: #ffffff !important;
+        background-color: #f0f8ff !important;
+        border-color: #1E3D59 !important;
+        color: #1E3D59 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
     }
     
-    /* Ensure primary buttons are always readable */
+    /* Primary buttons - light background, dark text */
     button[data-testid="baseButton-primary"],
     button[kind="primary"] {
-        background-color: #1E3D59 !important;
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #1E3D59 !important;
         border: 2px solid #1E3D59 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
     
     button[data-testid="baseButton-primary"]:hover,
     button[kind="primary"]:hover {
-        background-color: #2a5490 !important;
-        border-color: #2a5490 !important;
-        color: #ffffff !important;
+        background-color: #f0f8ff !important;
+        border-color: #1E3D59 !important;
+        color: #1E3D59 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
     }
     
-    /* Secondary buttons with better contrast */
+    /* Secondary buttons - also light background */
     button[data-testid="baseButton-secondary"],
     button[kind="secondary"] {
-        background-color: #ffffff !important;
+        background-color: #f8f9fa !important;
         color: #1E3D59 !important;
-        border: 2px solid #1E3D59 !important;
+        border: 2px solid #e9ecef !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     }
     
     button[data-testid="baseButton-secondary"]:hover,
     button[kind="secondary"]:hover {
-        background-color: #f0f8ff !important;
+        background-color: #e9ecef !important;
         color: #1E3D59 !important;
         border-color: #1E3D59 !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
     }
     </style>
     
