@@ -1,0 +1,10 @@
+[theme]
+# Force light theme as default
+primaryColor = "#1E3D59"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+base = "light"
+
+[server]
+headless = true

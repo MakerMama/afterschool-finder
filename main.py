@@ -5,20 +5,28 @@ from streamlit_folium import st_folium
 from datetime import datetime
 from utils import filter_programs, geocode_address, load_and_process_data, get_unique_values
 
+# Force light theme configuration
+st.set_page_config(
+    page_title="After-School Finder",
+    page_icon="📚",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
 # Helper functions for display
 def display_program_card(program):
     """Display a program as a card in list view"""
     with st.container():
         html = f"""
-        <div style='background-color: #f8f9fa; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-            <h3 style='color: #1E3D59; font-weight: bold; margin-bottom: 0.2rem; font-size: 1.2rem;'>{program.get('Program Name', 'N/A')}</h3>
-            <p style='color: #1E3D59; font-weight: 600; margin-bottom: 0.6rem; font-size: 1.0rem;'>{program.get('Provider Name', 'N/A')}</p>
-            <div style='background: #e8f4f8; border-radius: 8px; padding: 0.7rem; margin-bottom: 0.8rem; border-left: 4px solid #1E3D59;'>
-                <p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>⏰</span>{program.get('Day of the week', 'N/A')} • {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>"""
+        <div class='program-card-container'>
+            <h3 class='program-card-title'>{program.get('Program Name', 'N/A')}</h3>
+            <p class='program-card-provider'>{program.get('Provider Name', 'N/A')}</p>
+            <div class='program-card-info-bar'>
+                <p class='program-card-text'><span style='margin-right: 8px;'>⏰</span>{program.get('Day of the week', 'N/A')} • {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>"""
         
         # Add cost and distance to key info bar
         if 'Distance' in program and not pd.isna(program['Distance']):
-            html += f"<p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>📍</span>{program['Distance']:.2f} miles away</p>"
+            html += f"<p class='program-card-text'><span style='margin-right: 8px;'>📍</span>{program['Distance']:.2f} miles away</p>"
         
         cost_info = []
         enrollment_type = program.get('Enrollment Type', '').strip() if isinstance(program.get('Enrollment Type'), str) else ''
@@ -40,21 +48,21 @@ def display_program_card(program):
             cost_info.append(f"${program['Cost Per Class']:.2f}/class")
         
         if cost_info:
-            html += f"<p style='margin: 0.2rem 0; font-weight: 600; color: #1E3D59;'><span style='margin-right: 8px;'>💰</span>{' • '.join(cost_info)}</p>"
+            html += f"<p class='program-card-text'><span style='margin-right: 8px;'>💰</span>{' • '.join(cost_info)}</p>"
         html += "</div>"
         
         # Secondary details
-        html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>👶</span><strong>Ages:</strong> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>"
-        html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🎯</span><strong>Category:</strong> {program.get('Interest Category', 'N/A')}</p>"
-        html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>📍</span><strong>Address:</strong> {program.get('Address', 'N/A')}</p>"
+        html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>👶</span><strong>Ages:</strong> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>"
+        html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🎯</span><strong>Category:</strong> {program.get('Interest Category', 'N/A')}</p>"
+        html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>📍</span><strong>Address:</strong> {program.get('Address', 'N/A')}</p>"
         
         # Contact & additional info
         if 'Website' in program and not pd.isna(program['Website']):
-            html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🌐</span><a href='{program['Website']}' target='_blank' style='color: #1E3D59; text-decoration: none;'>Website</a></p>"
+            html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🌐</span><a href='{program['Website']}' target='_blank' class='program-card-link'>Website</a></p>"
         if 'Contact Phone' in program and not pd.isna(program['Contact Phone']):
-            html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>📞</span><strong>Phone:</strong> {program['Contact Phone']}</p>"
+            html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>📞</span><strong>Phone:</strong> {program['Contact Phone']}</p>"
         if 'School Pickup From' in program and isinstance(program['School Pickup From'], str) and program['School Pickup From'].strip():
-            html += f"<p style='margin: 0.4rem 0; color: #555;'><span style='margin-right: 6px;'>🚌</span><strong>School pickup:</strong> {program['School Pickup From']}</p>"
+            html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🚌</span><strong>School pickup:</strong> {program['School Pickup From']}</p>"
         html += "</div>"
         st.markdown(html, unsafe_allow_html=True)
 
@@ -653,851 +661,123 @@ if 'save_program_index' not in st.session_state:
 if 'details_program_data' not in st.session_state:
     st.session_state.details_program_data = None
 
-# Custom CSS for styling with mobile responsiveness
+# Force light theme CSS - Nuclear Option
 st.markdown("""
     <style>
-    /* Base styles */
-    .main-header,
-    h1.main-header,
-    .stMarkdown .main-header {
+    /* FORCE LIGHT THEME - Override everything */
+    .stApp,
+    .main,
+    [data-testid="stAppViewContainer"],
+    .stApp > div,
+    .main > div,
+    div[data-testid="stAppViewContainer"] > div,
+    .block-container,
+    [data-testid="block-container"] {
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
+    }
+    
+    /* Force all text elements to be dark */
+    .stApp *,
+    .main *,
+    [data-testid="stAppViewContainer"] *,
+    p, h1, h2, h3, h4, h5, h6, span, div, label {
+        color: #262730 !important;
+    }
+    
+    /* Force form backgrounds */
+    .stSelectbox,
+    .stMultiSelect,
+    .stNumberInput,
+    .stTextInput,
+    div[data-testid="stForm"],
+    .stCheckbox,
+    .stButton {
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
+    }
+    
+    /* Essential header styling */
+    .main-header {
         font-size: 2.2rem !important;
-        color: #1E3D59 !important;
         text-align: center !important;
         margin-bottom: 2rem !important;
-        line-height: 1.2 !important;
-        white-space: nowrap !important;
         font-weight: 700 !important;
-    }
-    
-    .section-header {
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        color: #1E3D59 !important;
-        margin: 1.5rem 0 0.75rem 0 !important;
-        border-bottom: 2px solid #e9ecef !important;
-        padding-bottom: 0.5rem !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-    
-    .section-header * {
-        color: #1E3D59 !important;
-        visibility: visible !important;
-    }
-    
-    /* Force visibility for all content inside section headers */
-    div.section-header {
         color: #1E3D59 !important;
     }
     
-    div.section-header > * {
-        color: #1E3D59 !important;
-    }
-    
-    /* Target Streamlit's markdown rendering specifically */
-    .stMarkdown .section-header {
-        color: #1E3D59 !important;
-    }
-    
-    .stMarkdown .section-header * {
-        color: #1E3D59 !important;
-    }
-    
-    .form-section {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        border: 1px solid #e9ecef;
-    }
-    
-    .result-card {
-        background-color: #ffffff;
+    /* Program card styling with forced light backgrounds */
+    .program-card-container {
+        background-color: #f8f9fa !important;
+        color: #262730 !important;
+        border: 1px solid #e9ecef !important;
         border-radius: 12px;
-        padding: 1.5rem;
+        padding: 1.25rem;
         margin-bottom: 1rem;
-        border: 1px solid #e9ecef;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    /* Enhanced button styling */
-    .stButton button {
-        background-color: #1E3D59;
-        color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.75rem 2rem;
-        width: 100%;
-        font-size: 1.1rem;
-        border: none;
-        transition: background-color 0.2s;
-    }
-    
-    .stButton button:hover {
-        background-color: #2a5490;
-    }
-    
-    /* Form container - responsive */
-    div.stForm > div[data-testid="stForm"] {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 1.5rem;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    /* Days selection - improved layout */
-    .days-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-        gap: 0.5rem;
-        margin: 1rem 0;
-    }
-    
-    .day-button {
-        background: #f8f9fa;
-        border: 2px solid #e9ecef;
-        border-radius: 8px;
-        padding: 0.5rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-    
-    .day-button.selected {
-        background: #1E3D59;
-        color: white;
-        border-color: #1E3D59;
-    }
-    
-    /* Input field improvements */
-    div[data-testid="stNumberInput"], 
-    div[data-testid="stTextInput"], 
-    div[data-testid="stSelectbox"],
-    div[data-testid="stMultiSelect"] {
-        margin-bottom: 1rem;
-    }
-    
-    /* Mobile-first responsive design */
-    @media (max-width: 768px) {
-        .main-header,
-        h1.main-header,
-        .stMarkdown .main-header {
-            font-size: 1.8rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-        
-        /* Form takes full width on mobile */
-        div.stForm > div[data-testid="stForm"] {
-            max-width: 100% !important;
-            margin: 0;
-            padding: 1rem !important;
-            border-radius: 8px;
-        }
-        
-        .form-section {
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        /* Stack columns vertically on mobile */
-        div[data-testid="column"] {
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-            margin-bottom: 1rem;
-        }
-        
-        /* Better mobile input sizing */
-        div[data-testid="stNumberInput"], 
-        div[data-testid="stTextInput"], 
-        div[data-testid="stMultiSelect"] {
-            max-width: 100% !important;
-        }
-        
-        /* Days grid - 2 columns on mobile */
-        .days-container {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-        }
-        
-        .day-button {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.85rem;
-        }
-        
-        /* Result cards on mobile */
-        .result-card {
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-        }
-        
-        /* Button sizing on mobile */
-        .stButton button {
-            padding: 1rem 1.5rem;
-            font-size: 1rem;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .main-header,
-        h1.main-header,
-        .stMarkdown .main-header {
-            font-size: 1.5rem !important;
-        }
-        
-        div.stForm > div[data-testid="stForm"] {
-            padding: 0.75rem !important;
-        }
-        
-        .form-section {
-            padding: 0.75rem;
-        }
-        
-        .days-container {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-        }
-        
-        .day-button {
-            padding: 0.6rem 0.3rem;
-            font-size: 0.8rem;
-        }
-    }
-    
-    /* Map responsiveness */
-    .stMap {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    
-    /* Results section styling */
-    .results-header {
-        color: #1E3D59;
-        font-size: 1.4rem;
-        margin: 1rem 0 0.5rem 0;
-        text-align: center;
-        padding: 0.5rem;
-        background: transparent;
-        border: none;
-    }
-    
-    /* Submit button section */
-    .submit-section {
-        margin-top: 2rem;
-        padding-top: 1.5rem;
-        border-top: 2px solid #e9ecef;
-        text-align: center;
-    }
-    
-    /* Schedule Grid Styles */
-    .schedule-container {
-        margin: 1rem 0;
-        border-radius: 8px;
-        overflow: hidden;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    .schedule-grid {
-        overflow-x: auto;
-        background: white;
-    }
-    
-    .schedule-table {
-        width: 100%;
-        min-width: 700px;
-        border-collapse: collapse;
-        font-size: 0.85rem;
-    }
-    
-    .day-header {
-        background: #1E3D59;
-        color: white;
-        font-weight: 600;
-        text-align: center;
-        padding: 0.75rem 0.5rem;
-        border: 1px solid #1E3D59;
-    }
-    
-    .time-slot {
-        background: #f8f9fa;
-        font-weight: 600;
-        color: #1E3D59;
-        padding: 0.75rem 0.5rem;
-        text-align: center;
-        border: 1px solid #e9ecef;
-        width: 100px;
-        font-size: 0.8rem;
-        white-space: nowrap;
-    }
-    
-    .schedule-cell {
-        border: 1px solid #e9ecef;
-        padding: 0.15rem;
-        min-height: 60px;
-        max-height: 300px;
-        width: 140px;
-        position: relative;
-        background: #fafafa;
-        vertical-align: top;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
-    
-    .schedule-cell::-webkit-scrollbar {
-        width: 4px;
-    }
-    
-    .schedule-cell::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 2px;
-    }
-    
-    .schedule-cell::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 2px;
-    }
-    
-    .schedule-cell::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-    
-    .program-card {
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 0.4rem 0.5rem;
-        margin: 2px 0;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        box-sizing: border-box;
-        position: relative;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    
-    .program-card:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-        border-color: #1E3D59;
-        z-index: 10;
-    }
-    
-    .program-card-content {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        gap: 0.3rem;
-        overflow: hidden;
-    }
-    
-    .category-icon {
-        font-size: 0.9rem;
-        flex-shrink: 0;
-        width: 16px;
-        text-align: center;
-    }
-    
-    .program-info {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-    }
-    
-    .program-title {
-        font-size: 0.65rem;
-        font-weight: 600;
-        color: #1E3D59;
-        line-height: 1.1;
-        margin: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-    }
-    
-    .program-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.2rem;
-        flex-shrink: 0;
-    }
-    
-    .distance-badge {
-        font-size: 0.55rem;
-        font-weight: 600;
-        padding: 0.1rem 0.3rem;
-        border-radius: 8px;
-        color: white;
-    }
-    
-    .distance-close { background: #4CAF50; }
-    .distance-medium { background: #FF9800; }
-    .distance-far { background: #f44336; }
-    
-    .favorite-icon {
-        font-size: 0.7rem;
-        color: #ccc;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-    
-    .favorite-icon:hover {
-        color: #e91e63;
-    }
-    
-    .favorite-icon.active {
-        color: #e91e63;
-    }
-    
-    .overflow-indicator {
-        position: absolute;
-        bottom: 2px;
-        right: 4px;
-        font-size: 0.6rem;
-        color: #666;
-        background: rgba(255,255,255,0.9);
-        padding: 1px 3px;
-        border-radius: 2px;
-        font-weight: 600;
-    }
-    
-    /* Schedule Management Styles */
-    .schedule-selector {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 1rem 0;
-        border: 1px solid #e9ecef;
-    }
-    
-    .schedule-tabs {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-        flex-wrap: wrap;
-    }
-    
-    .schedule-tab {
-        padding: 0.5rem 1rem;
-        border: 1px solid #e9ecef;
-        border-radius: 6px;
-        background: white;
-        color: #666;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-    
-    .schedule-tab.active {
-        background: #1E3D59;
-        color: white;
-        border-color: #1E3D59;
-    }
-    
-    .schedule-tab:hover {
-        background: #f0f0f0;
-    }
-    
-    .schedule-tab.active:hover {
-        background: #2a5490;
-    }
-    
-    .schedule-actions {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-    
-    .conflict-warning {
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 6px;
-        padding: 0.75rem;
-        margin: 0.5rem 0;
-        color: #856404;
-        font-size: 0.9rem;
-    }
-    
-    .conflict-warning .conflict-icon {
-        color: #f39c12;
-        margin-right: 0.5rem;
-    }
-    
-    .save-popup-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-    
-    .save-popup {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        width: 90%;
-        max-width: 400px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    
-    .save-popup h3 {
-        margin: 0 0 1rem 0;
-        color: #1E3D59;
+    .program-card-title {
+        color: #1E3D59 !important;
+        font-weight: bold;
+        margin-bottom: 0.2rem;
         font-size: 1.2rem;
     }
     
-    .save-popup .form-group {
-        margin-bottom: 1rem;
-    }
-    
-    .save-popup label {
-        display: block;
-        margin-bottom: 0.5rem;
+    .program-card-provider {
+        color: #1E3D59 !important;
         font-weight: 600;
-        color: #333;
+        margin-bottom: 0.6rem;
+        font-size: 1.0rem;
     }
     
-    .save-popup input,
-    .save-popup select {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #e9ecef;
-        border-radius: 6px;
-        font-size: 1rem;
+    .program-card-info-bar {
+        background: #e8f4f8 !important;
+        border-radius: 8px;
+        padding: 0.7rem;
+        margin-bottom: 0.8rem;
+        border-left: 4px solid #1E3D59;
     }
     
-    .save-popup-actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: flex-end;
-        margin-top: 1.5rem;
-    }
-    
-    .save-popup button {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 6px;
-        font-size: 1rem;
+    .program-card-text {
+        margin: 0.2rem 0;
         font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
+        color: #1E3D59 !important;
     }
     
-    .save-popup .btn-primary {
-        background: #1E3D59;
-        color: white;
+    .program-card-secondary {
+        margin: 0.4rem 0;
+        color: #555 !important;
     }
     
-    .save-popup .btn-primary:hover {
-        background: #2a5490;
+    .program-card-link {
+        text-decoration: none;
+        color: #1E3D59 !important;
     }
     
-    .save-popup .btn-secondary {
-        background: #6c757d;
-        color: white;
-    }
-    
-    .save-popup .btn-secondary:hover {
-        background: #5a6268;
-    }
-    
-    /* Heart button styling for schedule grid - much smaller */
-    div[data-testid="column"] button[aria-label*="Save to schedule"],
-    div[data-testid="column"] button[aria-label*="Remove from schedule"] {
-        padding: 1px 2px !important;
-        font-size: 0.6rem !important;
-        min-height: 16px !important;
-        height: 16px !important;
-        width: 18px !important;
-        border-radius: 2px !important;
-        background-color: transparent !important;
-        border: 1px solid #ddd !important;
-        color: #e91e63 !important;
-        line-height: 1 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    
-    div[data-testid="column"] button[aria-label*="Save to schedule"]:hover,
-    div[data-testid="column"] button[aria-label*="Remove from schedule"]:hover {
-        background-color: #ffeef4 !important;
-        border-color: #e91e63 !important;
-        transform: scale(1.05) !important;
-    }
-    
-    /* Additional targeting for heart buttons in schedule grid */
-    .stButton > button[title*="Save to schedule"],
-    .stButton > button[title*="Remove from schedule"],
-    button[data-testid="baseButton-secondary"][title*="Save to schedule"],
-    button[data-testid="baseButton-secondary"][title*="Remove from schedule"] {
-        padding: 1px 3px !important;
-        font-size: 0.6rem !important;
-        min-height: 16px !important;
-        height: 16px !important;
-        width: 18px !important;
-        border-radius: 2px !important;
-        background-color: transparent !important;
-        border: 1px solid #ddd !important;
-        color: #e91e63 !important;
-    }
-    
-    /* Make text more readable by increasing font sizes slightly */
-    div[style*="font-size: 0.8rem"] {
-        font-size: 0.85rem !important;
-    }
-    
-    div[style*="font-size: 0.7rem"] {
-        font-size: 0.75rem !important;
-    }
-
-    /* Schedule grid heart button styling - very small and inline */
-    div[data-testid="column"] .stButton button,
-    div[data-testid="column"] button {
-        padding: 0px 2px !important;
-        font-size: 0.5rem !important;
-        min-height: 14px !important;
-        height: 14px !important;  
-        width: 16px !important;
-        border-radius: 2px !important;
-        background-color: transparent !important;
-        border: 1px solid #ddd !important;
-        color: #e91e63 !important;
-        line-height: 1 !important;
-        margin: 0 !important;
-    }
-    
-    /* Reduce spacing between programs in schedule */
-    div[data-testid="column"] div[data-testid="column"] {
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    
-    /* Compact schedule grid rows */
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0.2rem !important;
-    }
-    
-    /* Remove extra spacing from schedule cells */
-    div[data-testid="element-container"] {
-        margin-bottom: 0.1rem !important;
-    }
-    
-    /* Fixed height for navigation buttons - perfect alignment */
-    div[data-testid="column"] .stButton button {
-        min-height: 42px !important;
-        height: 42px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0.5rem 1rem !important;
-        font-size: 0.9rem !important;
-        line-height: 1.2 !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    
-    /* Interactive program cards with hover effects */
-    .program-card {
-        background: transparent !important;
-        border: 1px solid transparent !important;
-        border-radius: 6px !important;
-        padding: 0.3rem !important;
-        margin: 0.1rem 0 !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    .program-card:hover {
-        background: #f0f8ff !important;
-        border-color: #1E3D59 !important;
-        box-shadow: 0 2px 8px rgba(30, 61, 89, 0.15) !important;
-        transform: translateY(-1px) !important;
-    }
-    
-    .program-card.saved {
-        background: #f0f8e8 !important;
-        border-color: #4CAF50 !important;
-    }
-    
-    .program-card.saved:hover {
-        background: #e8f5e8 !important;
-        border-color: #2E7D32 !important;
-    }
-    
-    /* Heart button enhancements */
-    .program-card .stButton button {
-        background: transparent !important;
-        border: 1px solid #ddd !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    .program-card .stButton button:hover {
-        background: #fff !important;
-        border-color: #e91e63 !important;
-        transform: scale(1.1) !important;
-        box-shadow: 0 2px 4px rgba(233, 30, 99, 0.2) !important;
-    }
-
-    /* Mobile schedule adjustments */
-    @media (max-width: 768px) {
-        .schedule-table {
-            min-width: 600px;
-            font-size: 0.75rem;
-        }
-        
-        .schedule-cell {
-            width: 120px;
-            min-height: 60px;
-            max-height: 250px;
-        }
-        
-        .time-slot {
-            width: 80px;
-            padding: 0.5rem 0.25rem;
-            font-size: 0.7rem;
-        }
-        
-        .day-header {
-            padding: 0.5rem 0.25rem;
-        }
-        
-        .program-card {
-            height: 32px;
-            padding: 0.3rem 0.4rem;
-        }
-        
-        .program-title {
-            font-size: 0.6rem;
-        }
-        
-        .category-icon {
-            font-size: 0.8rem;
-            width: 14px;
-        }
-        
-        .distance-badge {
-            font-size: 0.5rem;
-            padding: 0.05rem 0.2rem;
-        }
-        
-        .favorite-icon {
-            font-size: 0.65rem;
-        }
-    }
-    
-    /* Mobile map adjustments */
-    @media (max-width: 768px) {
-        .stMap, iframe {
-            height: 300px !important;
-            min-height: 300px !important;
-        }
-        
-        .results-header {
-            font-size: 1.2rem;
-            margin: 1.5rem 0 0.75rem 0;
-            padding: 0.75rem;
-        }
-        
-        .submit-section {
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .stMap, iframe {
-            height: 250px !important;
-            min-height: 250px !important;
-        }
-        
-        .results-header {
-            font-size: 1.1rem;
-            padding: 0.5rem;
-        }
-    }
-    
-    /* Dark mode compatibility */
+    /* Override ANY dark theme detection */
     @media (prefers-color-scheme: dark) {
-        .main-header {
-            color: #ffffff !important;
-        }
-        
-        .form-section {
-            background: #262730;
-            border-color: #404040;
-        }
-        
-        .result-card {
-            background-color: #262730;
-            border-color: #404040;
-        }
-        
-        .day-button {
-            background: #404040;
-            border-color: #555;
-            color: #fff;
-        }
-        
-        .results-header {
-            background: transparent;
-            color: #ffffff !important;
-            border: none;
-        }
-        
-        .section-header,
-        div.section-header,
-        .stMarkdown .section-header {
-            color: #ffffff !important;
-            border-color: #555 !important;
-        }
-        
-        .section-header *,
-        div.section-header *,
-        .stMarkdown .section-header * {
-            color: #ffffff !important;
-        }
-        
-        /* Target specific result text styling in dark mode only */
-        body div[style*="font-size: 1.4rem"] {
-            color: #ffffff !important;
-        }
-        
-        body div[style*="font-size: 1.3rem"] {
-            color: #ffffff !important;
+        .stApp,
+        .main,
+        [data-testid="stAppViewContainer"],
+        .stApp > div,
+        .main > div {
+            background-color: #FFFFFF !important;
+            color: #262730 !important;
         }
     }
     
-    /* Streamlit dark theme specific overrides */
-    .stApp[data-theme="dark"] .main-header,
-    [data-testid="stAppViewContainer"][data-theme="dark"] .main-header {
-        color: #ffffff !important;
+    /* Override Streamlit's theme classes */
+    .stApp[data-theme="dark"],
+    [data-testid="stAppViewContainer"][data-theme="dark"] {
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
     }
     
-    /* Only target inline styles in dark mode */
-    @media (prefers-color-scheme: dark) {
-        div[style*="color: #1E3D59"] {
-            color: #ffffff !important;
-        }
-    }
-    
-    .stApp[data-theme="dark"] div[style*="color: #1E3D59"],
-    [data-testid="stAppViewContainer"][data-theme="dark"] div[style*="color: #1E3D59"] {
-        color: #ffffff !important;
+    .stApp[data-theme="dark"] *,
+    [data-testid="stAppViewContainer"][data-theme="dark"] * {
+        background-color: inherit !important;
+        color: #262730 !important;
     }
     </style>
     
@@ -1769,7 +1049,7 @@ try:
         st.markdown(f"""
         <style>
         .result-count-text {{
-            color: #2E3440 !important;
+            color: #1E3D59 !important;
             font-size: 1.4rem !important;
             margin: 1rem 0 0.5rem 0 !important;
             text-align: center !important;
@@ -1924,7 +1204,7 @@ try:
                 .map-header {
                     font-size: 1.3rem !important;
                     font-weight: 600 !important;
-                    color: #2E3440 !important;
+                    color: #1E3D59 !important;
                     margin: 0.2rem 0 0.2rem 0 !important;
                     padding: 0 !important;
                 }
@@ -1946,7 +1226,7 @@ try:
                 .list-view-header {
                     font-size: 1.3rem !important;
                     font-weight: 600 !important;
-                    color: #2E3440 !important;
+                    color: #1E3D59 !important;
                     margin: 0.2rem 0 !important;
                     padding: 0 !important;
                 }
@@ -1962,7 +1242,7 @@ try:
                 .schedule-view-header {
                     font-size: 1.3rem !important;
                     font-weight: 600 !important;
-                    color: #2E3440 !important;
+                    color: #1E3D59 !important;
                     margin: 0.2rem 0 !important;
                     padding: 0 !important;
                 }
