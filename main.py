@@ -52,7 +52,11 @@ def display_program_card(program):
         html += "</div>"
         
         # Secondary details
-        html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>👶</span><strong>Ages:</strong> {int(float(program.get('Min Age', 0)))} - {int(float(program.get('Max Age', 0)))}</p>"
+        min_age_val = program.get('Min Age', 0)
+        max_age_val = program.get('Max Age', 0)
+        min_age_safe = int(float(min_age_val)) if min_age_val is not None and not pd.isna(min_age_val) else 0
+        max_age_safe = int(float(max_age_val)) if max_age_val is not None and not pd.isna(max_age_val) else 0
+        html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>👶</span><strong>Ages:</strong> {min_age_safe} - {max_age_safe}</p>"
         html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🎯</span><strong>Category:</strong> {program.get('Interest Category', 'N/A')}</p>"
         html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>📍</span><strong>Address:</strong> {program.get('Address', 'N/A')}</p>"
         
@@ -224,7 +228,14 @@ def filter_programs_by_schedule(filtered_df, schedule_name):
     if schedule_name == "All Programs" or schedule_name not in st.session_state.saved_schedules:
         return filtered_df
     
+    # Handle empty dataframe
+    if filtered_df.empty:
+        return filtered_df
+    
     saved_programs = st.session_state.saved_schedules[schedule_name]
+    if not saved_programs:  # Handle empty schedule
+        return filtered_df.iloc[0:0]  # Return empty dataframe with same structure
+    
     saved_program_keys = set()
     
     for prog in saved_programs:
@@ -232,12 +243,19 @@ def filter_programs_by_schedule(filtered_df, schedule_name):
         saved_program_keys.add(key)
     
     # Filter the dataframe to only include saved programs (match by name, provider, day, and time)
-    mask = filtered_df.apply(lambda row: 
-        f"{row.get('Program Name', 'N/A')}|{row.get('Provider Name', 'N/A')}|{row.get('Day of the week', 'N/A')}|{row.get('Start time', 'N/A')}" in saved_program_keys, 
-        axis=1
-    )
-    
-    return filtered_df[mask]
+    try:
+        mask = filtered_df.apply(lambda row: 
+            f"{row.get('Program Name', 'N/A')}|{row.get('Provider Name', 'N/A')}|{row.get('Day of the week', 'N/A')}|{row.get('Start time', 'N/A')}" in saved_program_keys, 
+            axis=1
+        )
+        
+        # Use .loc to avoid ambiguous boolean indexing
+        return filtered_df.loc[mask.fillna(False)]
+        
+    except Exception as e:
+        # If there's an error with filtering, return all programs
+        print(f"Error filtering programs: {e}")
+        return filtered_df
 
 @st.dialog("📋 Program Details")
 def program_details_modal():
@@ -304,8 +322,10 @@ def program_details_modal():
         if age_range and not pd.isna(age_range) and str(age_range).strip():
             st.text(f"Ages: {age_range}")
         else:
-            min_age = int(float(program.get('Min Age', 0))) if program.get('Min Age') and not pd.isna(program.get('Min Age', 0)) else 0
-            max_age = int(float(program.get('Max Age', 0))) if program.get('Max Age') and not pd.isna(program.get('Max Age', 0)) else 0
+            min_age_val = program.get('Min Age', 0)
+            max_age_val = program.get('Max Age', 0)
+            min_age = int(float(min_age_val)) if min_age_val is not None and not pd.isna(min_age_val) and min_age_val != 0 else 0
+            max_age = int(float(max_age_val)) if max_age_val is not None and not pd.isna(max_age_val) and max_age_val != 0 else 0
             st.text(f"Ages: {min_age} - {max_age}")
         st.text(f"Category: {program.get('Interest Category', 'N/A')}")
         
