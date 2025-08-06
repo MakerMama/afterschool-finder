@@ -328,7 +328,8 @@ def program_details_modal():
         st.text(f"Time: {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}")
         
         age_range = program.get('Age range', '')
-        if age_range and not pd.isna(age_range) and str(age_range).strip():
+        # Safe boolean check to avoid pandas Series ambiguity
+        if age_range is not None and not pd.isna(age_range) and str(age_range).strip():
             st.text(f"Ages: {age_range}")
         else:
             min_age_val = program.get('Min Age', 0)
@@ -390,7 +391,7 @@ def program_details_modal():
     with action_col1:
         if st.button("📞", use_container_width=True, help="Call"):
             phone = program.get('Contact Phone')
-            if phone and not pd.isna(phone) and str(phone).strip():
+            if phone is not None and not pd.isna(phone) and str(phone).strip():
                 st.success(f"Phone: {phone}")
             else:
                 st.warning("No phone number available")
@@ -398,7 +399,7 @@ def program_details_modal():
     with action_col2:
         if st.button("🗺️", use_container_width=True, help="Get Directions"):
             address = program.get('Address')
-            if address and not pd.isna(address) and str(address).strip():
+            if address is not None and not pd.isna(address) and str(address).strip():
                 maps_url = f"https://maps.google.com/maps?q={str(address).replace(' ', '+')}"
                 st.markdown(f"[Open in Google Maps]({maps_url})")
             else:
@@ -407,7 +408,7 @@ def program_details_modal():
     with action_col3:
         if st.button("🌐", use_container_width=True, help="Visit Website"):
             website = program.get('Website')
-            if website and not pd.isna(website) and str(website).strip():
+            if website is not None and not pd.isna(website) and str(website).strip():
                 st.markdown(f"[Visit Website]({website})")
             else:
                 st.warning("No website available")
