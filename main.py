@@ -261,7 +261,16 @@ def filter_programs_by_schedule(filtered_df, schedule_name):
 def program_details_modal():
     """Show detailed program information with quick actions"""
     program = st.session_state.get('details_program_data')
-    if program is None or (hasattr(program, 'empty') and program.empty):
+    if program is None:
+        st.error("No program data available")
+        return
+    
+    # Convert pandas Series to dict if needed
+    if hasattr(program, 'to_dict'):
+        program = program.to_dict()
+    
+    # Check if it's an empty dict or Series
+    if not program or (hasattr(program, 'empty') and program.empty):
         st.error("No program data available")
         return
     
@@ -618,7 +627,8 @@ def display_schedule_grid(filtered_df):
                                            key=f"details_{day}_{time_slot}_{i}",
                                            help="Click to view program details",
                                            use_container_width=True):
-                                    st.session_state.details_program_data = program
+                                    # Convert pandas Series to dictionary to avoid boolean ambiguity
+                                    st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
                                     program_details_modal()
                             
                             with prog_col2:
@@ -798,6 +808,50 @@ st.markdown("""
     [data-testid="stAppViewContainer"][data-theme="dark"] * {
         background-color: inherit !important;
         color: #262730 !important;
+    }
+    
+    /* Fix button contrast issues */
+    .stButton button {
+        background-color: #1E3D59 !important;
+        color: #ffffff !important;
+        border: 2px solid #1E3D59 !important;
+        font-weight: 600 !important;
+    }
+    
+    .stButton button:hover {
+        background-color: #2a5490 !important;
+        border-color: #2a5490 !important;
+        color: #ffffff !important;
+    }
+    
+    /* Ensure primary buttons are always readable */
+    button[data-testid="baseButton-primary"],
+    button[kind="primary"] {
+        background-color: #1E3D59 !important;
+        color: #ffffff !important;
+        border: 2px solid #1E3D59 !important;
+    }
+    
+    button[data-testid="baseButton-primary"]:hover,
+    button[kind="primary"]:hover {
+        background-color: #2a5490 !important;
+        border-color: #2a5490 !important;
+        color: #ffffff !important;
+    }
+    
+    /* Secondary buttons with better contrast */
+    button[data-testid="baseButton-secondary"],
+    button[kind="secondary"] {
+        background-color: #ffffff !important;
+        color: #1E3D59 !important;
+        border: 2px solid #1E3D59 !important;
+    }
+    
+    button[data-testid="baseButton-secondary"]:hover,
+    button[kind="secondary"]:hover {
+        background-color: #f0f8ff !important;
+        color: #1E3D59 !important;
+        border-color: #1E3D59 !important;
     }
     </style>
     
