@@ -623,7 +623,7 @@ def display_schedule_grid(filtered_df):
                             prog_col1, prog_col2 = st.columns([5, 1])
                             with prog_col1:
                                 # Clickable program info
-                                if st.button(f"{icon} {program_name}\n{provider_name}", 
+                                if st.button(f"{icon} **{program_name}** - {provider_name}", 
                                            key=f"details_{day}_{time_slot}_{i}",
                                            help="Click to view program details",
                                            use_container_width=True):
@@ -858,6 +858,44 @@ st.markdown("""
         color: #1E3D59 !important;
         border-color: #1E3D59 !important;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    }
+    
+    /* Compact program card styling */
+    .program-card .stButton button {
+        min-height: 24px !important;
+        height: 24px !important;
+        padding: 2px 6px !important;
+        font-size: 0.75rem !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    /* Make program card buttons more compact and single-line */
+    div[data-testid="column"] .stButton button {
+        min-height: 24px !important;
+        height: 24px !important;
+        padding: 2px 6px !important;
+        font-size: 0.75rem !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* Heart buttons should stay small */
+    .program-card .stButton button[title*="Save"],
+    .program-card .stButton button[title*="Remove"] {
+        min-height: 16px !important;
+        height: 16px !important;
+        width: 18px !important;
+        padding: 0px 2px !important;
+        font-size: 0.6rem !important;
     }
     </style>
     
