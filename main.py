@@ -1144,10 +1144,10 @@ try:
         if len(filtered_df) > 0:
             st.markdown('<div style="padding: 0.5rem 0; margin: 1rem 0;">', unsafe_allow_html=True)
             
-            # Main navigation row
-            nav_col1, nav_col2, nav_col3 = st.columns([2, 2, 3])
+            # Improved navigation layout - Option 3
+            nav_col1, nav_col2, nav_spacer, nav_col3 = st.columns([2, 2, 1, 3])
             
-            # View mode buttons (Schedule View as primary)
+            # View mode buttons (left side)
             with nav_col1:
                 if st.button("🗓️ Schedule View", key="schedule_view", 
                            type="primary" if st.session_state.view_mode == "Schedule View" else "secondary",
@@ -1160,34 +1160,29 @@ try:
                            use_container_width=True):
                     st.session_state.view_mode = "List View"
             
-            # My Schedules section
+            # Schedule selection dropdown (right side)
             with nav_col3:
                 schedule_names = ["All Programs"] + list(st.session_state.saved_schedules.keys())
                 
-                # Create columns for schedule buttons only (no +New button)
-                num_schedules = min(len(schedule_names), 4)  # Show max 4 schedules
-                if num_schedules > 0:
-                    schedule_cols = st.columns(num_schedules)
-                    
-                    # Show schedule buttons
-                    for i, schedule_name in enumerate(schedule_names[:4]):
-                        with schedule_cols[i]:
-                            if schedule_name == "All Programs":
-                                button_text = "🔍 All"
-                                button_type = "primary" if st.session_state.current_schedule == schedule_name else "secondary"
-                            else:
-                                # Truncate long schedule names for compact display
-                                if len(schedule_name) > 10:
-                                    short_name = schedule_name[:9] + "..."
-                                else:
-                                    short_name = schedule_name
-                                button_text = f"⭐{short_name}"
-                                button_type = "primary" if st.session_state.current_schedule == schedule_name else "secondary"
-                            
-                            if st.button(button_text, key=f"nav_schedule_{i}", 
-                                       type=button_type, use_container_width=True):
-                                st.session_state.current_schedule = schedule_name
-                                st.rerun()
+                # Find current schedule index
+                try:
+                    current_index = schedule_names.index(st.session_state.current_schedule)
+                except ValueError:
+                    current_index = 0  # Default to "All Programs"
+                
+                # Create dropdown for schedule selection
+                selected_schedule = st.selectbox(
+                    "Show:",
+                    options=schedule_names,
+                    index=current_index,
+                    key="schedule_dropdown",
+                    help="Select which schedule to display"
+                )
+                
+                # Update current schedule if changed
+                if selected_schedule != st.session_state.current_schedule:
+                    st.session_state.current_schedule = selected_schedule
+                    st.rerun()
             
             
             # Show conflicts if any
