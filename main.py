@@ -3,6 +3,7 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 from datetime import datetime
+import time
 from utils import filter_programs, geocode_address, load_and_process_data, get_unique_values
 
 # Force light theme configuration
@@ -12,6 +13,240 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Mobile-Optimized Button Alignment System
+st.markdown("""
+<style>
+/* Mobile-first button alignment system */
+/* Minimum touch target size: 44x44px with proper spacing */
+
+/* PRIMARY ACTION BUTTONS - Centered for prominence */
+.primary-action button {
+    min-height: 44px !important;
+    margin: 10px 0 !important;
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-size: 1rem !important;
+}
+
+/* SECONDARY ACTION BUTTONS - Standard alignment */
+.secondary-action button {
+    min-height: 44px !important;
+    margin: 8px 0 !important;
+    border-radius: 6px !important;
+    padding: 10px 16px !important;
+    font-size: 0.9rem !important;
+}
+
+/* GRID/LIST BUTTONS - Left aligned for natural reading */
+.grid-button {
+    text-align: left !important;
+    min-height: 44px !important;
+    margin: 4px 0 !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    border: 1px solid #e9ecef !important;
+    background: white !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.grid-button button {
+    text-align: left !important;
+    min-height: 44px !important;
+    width: 100% !important;
+    padding: 12px 16px !important;
+    border-radius: 6px !important;
+    font-size: 0.9rem !important;
+    line-height: 1.3 !important;
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    color: #333 !important;
+    transition: all 0.2s ease !important;
+}
+
+.grid-button button:hover {
+    background: #f8f9fa !important;
+    border-color: #adb5bd !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* PROGRAM BUTTONS WITH HEART ICONS - Force tight spacing */
+.program-button {
+    position: relative !important;
+    min-height: 38px !important;
+    margin: 1px 0 !important; /* Very tight spacing for desktop */
+    padding: 0 !important;
+}
+
+/* Target Streamlit's button container specifically */
+.program-button > div {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.program-button button {
+    text-align: left !important;
+    width: 100% !important;
+    min-height: 38px !important;
+    height: 38px !important; /* Force specific height */
+    padding: 6px 40px 6px 12px !important; /* Reduced padding */
+    border-radius: 4px !important;
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    color: #333 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.2 !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important; /* Force no margin */
+}
+
+/* Target Streamlit's default spacing - multiple approaches */
+div[data-testid="column"] > div > div:has(.program-button) {
+    margin: 1px 0 !important;
+    padding: 0 !important;
+}
+
+/* Force tight spacing on Streamlit's element containers */
+.element-container:has(.program-button) {
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
+    padding: 0 !important;
+}
+
+/* Alternative targeting for Streamlit containers */
+div[data-testid="stVerticalBlock"] > div:has(.program-button) {
+    margin: 1px 0 !important;
+    padding: 0 !important;
+}
+
+/* Nuclear option - force all buttons in columns to be tight */
+div[data-testid="column"] button {
+    margin: 2px 0 !important;
+}
+
+.program-button button:hover {
+    background: #f8f9fa !important;
+    border-color: #adb5bd !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* FAVORITE HEART ICON - Right aligned within button */
+.favorite-heart {
+    position: absolute !important;
+    right: 10px !important; /* Closer to edge for tighter layout */
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 1rem !important; /* Slightly smaller for desktop */
+    color: #dc3545 !important;
+    cursor: pointer !important;
+    z-index: 2 !important;
+    min-width: 20px !important; /* Smaller for desktop */
+    min-height: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ACTION BUTTONS IN MODALS - Centered with spacing */
+.modal-actions {
+    margin-top: 20px !important;
+    display: flex !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+}
+
+.modal-actions button {
+    min-height: 44px !important;
+    min-width: 120px !important;
+    margin: 5px !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+}
+
+/* NAVIGATION BUTTONS - Clean minimal style */
+.nav-button button {
+    min-height: 44px !important;
+    padding: 10px 20px !important;
+    border-radius: 6px !important;
+    margin: 5px 0 !important;
+    font-size: 0.9rem !important;
+}
+
+/* MOBILE RESPONSIVE ADJUSTMENTS */
+@media (max-width: 768px) {
+    .primary-action button {
+        font-size: 0.95rem !important;
+        padding: 14px 20px !important;
+        min-height: 48px !important;
+    }
+    
+    .grid-button button, .program-button button {
+        min-height: 48px !important;
+        padding: 12px 16px !important;
+        font-size: 0.9rem !important;
+        line-height: 1.3 !important;
+    }
+    
+    .program-button {
+        margin: 4px 0 !important; /* More spacing on mobile for touch targets */
+    }
+    
+    .program-button button {
+        padding: 12px 44px 12px 16px !important; /* More space for heart on mobile */
+    }
+    
+    .favorite-heart {
+        right: 14px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        font-size: 1.2rem !important;
+    }
+    
+    .modal-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .modal-actions button {
+        width: 100% !important;
+        min-height: 48px !important;
+        margin: 4px 0 !important;
+    }
+}
+
+/* TOUCH TARGET SAFETY */
+button, .favorite-heart {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+}
+
+/* BUTTON SPACING SYSTEM */
+.button-group {
+    margin: 10px 0 !important;
+}
+
+.button-row {
+    margin: 8px 0 !important;
+}
+
+.button-spacing {
+    margin: 6px 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Helper functions for display
 def display_program_card(program):
@@ -315,7 +550,9 @@ def program_details_modal():
         else:
             if st.button("♡", type="primary", use_container_width=True, help="Save to schedule"):
                 st.session_state.popup_program_data = program
-                save_program_dialog()
+                st.session_state.show_save_dialog = True
+                st.session_state.show_program_details = False  # Close details modal
+                st.rerun()
     
     st.markdown("---")
     
@@ -383,13 +620,16 @@ def program_details_modal():
             st.markdown("#### 🚌 Transportation")
             st.text(f"School pickup: {school_pickup}")
     
-    # Quick action buttons
+    # Quick action buttons with mobile-optimized styling
     st.markdown("---")
     st.markdown("#### Quick Actions")
+    
+    # Modal action buttons with proper mobile alignment
+    st.markdown('<div class="modal-actions">', unsafe_allow_html=True)
     action_col1, action_col2, action_col3, action_col4 = st.columns(4)
     
     with action_col1:
-        if st.button("📞", use_container_width=True, help="Call"):
+        if st.button("📞 Call", use_container_width=True, help="Call program"):
             phone = program.get('Contact Phone')
             if phone is not None and not pd.isna(phone) and str(phone).strip():
                 st.success(f"Phone: {phone}")
@@ -397,7 +637,7 @@ def program_details_modal():
                 st.warning("No phone number available")
     
     with action_col2:
-        if st.button("🗺️", use_container_width=True, help="Get Directions"):
+        if st.button("🗺️ Map", use_container_width=True, help="Get directions"):
             address = program.get('Address')
             if address is not None and not pd.isna(address) and str(address).strip():
                 maps_url = f"https://maps.google.com/maps?q={str(address).replace(' ', '+')}"
@@ -406,7 +646,7 @@ def program_details_modal():
                 st.warning("No address available")
     
     with action_col3:
-        if st.button("🌐", use_container_width=True, help="Visit Website"):
+        if st.button("🌐 Web", use_container_width=True, help="Visit website"):
             website = program.get('Website')
             if website is not None and not pd.isna(website) and str(website).strip():
                 st.markdown(f"[Visit Website]({website})")
@@ -414,9 +654,12 @@ def program_details_modal():
                 st.warning("No website available")
     
     with action_col4:
-        if st.button("✖️", use_container_width=True, help="Close"):
+        if st.button("✖️ Close", use_container_width=True, help="Close details"):
             st.session_state.details_program_data = None
+            st.session_state.show_program_details = False
             st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 @st.dialog("💾 Save Program to Schedule")
 def save_program_dialog():
@@ -477,7 +720,8 @@ def save_program_dialog():
     
     st.markdown("---")
     
-    # Action buttons
+    # Action buttons with mobile-optimized styling
+    st.markdown('<div class="modal-actions">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -496,6 +740,7 @@ def save_program_dialog():
                         
                         # Clear popup state and close modal
                         st.session_state.show_save_popup = False
+                        st.session_state.show_save_dialog = False
                         st.session_state.popup_program_data = None
                         st.rerun()
                     else:
@@ -506,19 +751,36 @@ def save_program_dialog():
     with col2:
         if st.button("❌ Cancel", use_container_width=True):
             st.session_state.show_save_popup = False
+            st.session_state.show_save_dialog = False
             st.session_state.popup_program_data = None
             st.rerun()
     
     with col3:
         if existing_schedules:
-            if st.button("🗑️ Manage Schedules", use_container_width=True):
+            if st.button("🗑️ Manage", use_container_width=True):
                 st.info("Schedule management coming soon!")
                 # Could expand this to show schedule management options
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Removed alternative grid functions - keeping only standard view
 
 def display_schedule_grid(filtered_df):
-    """Display programs in a weekly schedule grid with interactive save buttons"""
+    """Display programs in a weekly schedule grid with interactive save buttons (ORIGINAL VERSION)"""
     if len(filtered_df) == 0:
         return
+        
+    # No header needed - keeping it clean
+    
+    # Add CSS for visual indicators
+    st.markdown("""
+    <style>
+    .schedule-selected {
+        border-left: 3px solid #28a745 !important;
+        background: rgba(40, 167, 69, 0.05) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     # Days of the week (Mon-Fri)  
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -614,47 +876,50 @@ def display_schedule_grid(filtered_df):
                         # Determine if program is saved for styling
                         saved_class = "saved" if is_saved else ""
                         
+                        # Check if this SPECIFIC program (including day/time) is already in any saved schedule
+                        in_schedule = None
+                        for schedule_name, schedule_programs in st.session_state.saved_schedules.items():
+                            if any(prog.get('Program Name') == program_name and 
+                                  prog.get('Provider Name') == provider_name and
+                                  prog.get('Day of the week') == program.get('Day of the week', '') and
+                                  prog.get('Start time') == program.get('Start time', '')
+                                  for prog in schedule_programs):
+                                in_schedule = schedule_name
+                                break
+                        
                         # Clickable program card with hover effects
                         card_container = st.container()
                         with card_container:
-                            # Add CSS class for styling
-                            st.markdown(f'<div class="program-card {saved_class}">', unsafe_allow_html=True)
+                            # Add CSS class for styling and selection indicator
+                            selected_class = "program-selected" if in_schedule else ""
+                            st.markdown(f'<div class="program-card {saved_class} {selected_class}">', unsafe_allow_html=True)
                             
-                            # Make entire card clickable
-                            prog_col1, prog_col2 = st.columns([5, 1])
-                            with prog_col1:
-                                # Clickable program info
-                                if st.button(f"{icon} **{program_name}** - {provider_name}", 
-                                           key=f"details_{day}_{time_slot}_{i}",
-                                           help="Click to view program details",
-                                           use_container_width=True):
-                                    # Convert pandas Series to dictionary to avoid boolean ambiguity
-                                    st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
-                                    program_details_modal()
+                            # Use full width for program info - no heart button
+                            # Optimize text for single line display - more space for program name
+                            display_name = program_name[:25] + "..." if len(program_name) > 25 else program_name
                             
-                            with prog_col2:
-                                # Enhanced heart button with visual feedback
-                                if is_saved:
-                                    if st.button("💖", key=f"remove_{button_key}", help="Remove from schedule"):
-                                        if current_schedule in st.session_state.saved_schedules:
-                                            st.session_state.saved_schedules[current_schedule] = [
-                                                p for p in st.session_state.saved_schedules[current_schedule]
-                                                if not (p['Program Name'] == program_name and 
-                                                       p['Provider Name'] == provider_name and
-                                                       p['Day of the week'] == program.get('Day of the week', '') and
-                                                       p['Start time'] == program.get('Start time', ''))
-                                            ]
-                                            st.success(f"Removed {program_name} from {current_schedule}")
-                                            st.rerun()
-                                else:
-                                    if st.button("♡", key=button_key, help="Save to schedule"):
-                                        st.session_state.popup_program_data = program
-                                        save_program_dialog()
+                            # Simple tooltip with schedule info if applicable
+                            if in_schedule:
+                                tooltip_text = f"Provider: {provider_name}. In schedule: {in_schedule}. Click to view full details."
+                            else:
+                                tooltip_text = f"Provider: {provider_name}. Click to view full details."
                             
-                            # Close program card div
-                            st.markdown('</div>', unsafe_allow_html=True)
+                            # Simple Streamlit button with program name only, enhanced tooltip  
+                            button_key = f"prog_{day}_{time_slot}_{i}"
+                            
+                            # Clean, standard Streamlit button experience
+                            button_text = f"{icon} {display_name}" + (" 💖" if in_schedule else "")
+                            
+                            if st.button(button_text, 
+                                       key=button_key,
+                                       help=tooltip_text,
+                                       use_container_width=True):
+                                # Convert pandas Series to dictionary to avoid boolean ambiguity
+                                st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
+                                st.session_state.show_program_details = True
+                                st.rerun()
                 else:
-                    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height: 2px;'></div>", unsafe_allow_html=True)
         
         st.markdown("---")
 
@@ -663,6 +928,7 @@ if 'selected_days' not in st.session_state:
     st.session_state.selected_days = []
 if 'selected_interests' not in st.session_state:
     st.session_state.selected_interests = []
+# Removed alternative grid options - keeping standard view only
 if 'child_age' not in st.session_state:
     st.session_state.child_age = 5
 if 'start_time' not in st.session_state:
@@ -677,8 +943,7 @@ if 'filtered_df' not in st.session_state:
     st.session_state.filtered_df = None
 if 'submitted' not in st.session_state:
     st.session_state.submitted = False
-if 'view_mode' not in st.session_state:
-    st.session_state.view_mode = "Schedule View"
+# Removed view_mode - only showing schedule view now
 if 'saved_schedules' not in st.session_state:
     st.session_state.saved_schedules = {}
 if 'current_schedule' not in st.session_state:
@@ -691,6 +956,10 @@ if 'save_program_index' not in st.session_state:
     st.session_state.save_program_index = None
 if 'details_program_data' not in st.session_state:
     st.session_state.details_program_data = None
+if 'show_program_details' not in st.session_state:
+    st.session_state.show_program_details = False
+if 'show_save_dialog' not in st.session_state:
+    st.session_state.show_save_dialog = False
 
 # Force light theme CSS - Nuclear Option
 st.markdown("""
@@ -744,7 +1013,7 @@ st.markdown("""
         border: 1px solid #e9ecef !important;
         border-radius: 12px;
         padding: 1.25rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.3rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
@@ -861,32 +1130,284 @@ st.markdown("""
         box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
     }
     
-    /* Compact program card styling */
+    /* Compact program card styling with no margins/padding for max text space */
     .program-card .stButton button {
-        min-height: 24px !important;
-        height: 24px !important;
-        padding: 2px 6px !important;
-        font-size: 0.75rem !important;
-        line-height: 1.2 !important;
+        min-height: 28px !important;
+        height: 28px !important;
+        max-height: 28px !important;
+        padding: 0px !important;
+        margin: 0px !important;
+        font-size: 0.6rem !important;
+        line-height: 1.0 !important;
         text-align: left !important;
-        white-space: nowrap !important;
+        white-space: pre-wrap !important;
         overflow: hidden !important;
+        display: block !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #262730 !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        font-weight: normal !important;
+        word-break: break-word !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Make program card buttons more compact with no margins/padding for max text space */
+    div[data-testid="column"] .stButton button {
+        min-height: 28px !important;
+        height: 28px !important;
+        max-height: 28px !important;
+        padding: 0px !important;
+        margin: 0px !important;
+        font-size: 0.6rem !important;
+        line-height: 1.0 !important;
+        text-align: left !important;
+        white-space: pre-wrap !important;
+        overflow: hidden !important;
+        display: block !important;
+        font-weight: normal !important;
+        word-break: break-word !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Remove ALL margins and padding everywhere */
+    .program-card .stButton {
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+    
+    .program-card .stButton > div {
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+    
+    /* NUCLEAR OPTION - Remove ALL margins and padding everywhere */
+    .program-card .stButton,
+    .program-card .stButton > div,
+    .program-card .stButton button,
+    div[data-testid="column"] .stButton,
+    div[data-testid="column"] .stButton > div,
+    div[data-testid="column"] .stButton button,
+    div[data-testid="column"] button,
+    .program-card div[data-testid="column"],
+    div[data-testid="column"] {
+        margin: 0 !important;
+        padding: 0 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        align-items: flex-start !important;
+        border-spacing: 0 !important;
+    }
+    
+    /* DEBUG: Force 2-line button layout with different approach */
+    .program-card .stButton button,
+    div[data-testid="column"] .stButton button {
+        height: 28px !important;
+        min-height: 28px !important;
+        max-height: 28px !important;
+        font-size: 0.45rem !important;
+        line-height: 1.0 !important;
+        overflow: hidden !important;
+        white-space: pre-line !important;
+        word-wrap: break-word !important;
+        border: 1px solid #ddd !important;
+        background: white !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 2px !important;
+        margin: 0 !important;
+        display: block !important;
+        text-align: left !important;
+    }
+    
+    /* Reduce vertical spacing in schedule grid */
+    .program-card {
+        margin: 1px 0 !important;
+        padding: 1px !important;
+    }
+    
+    .program-card .stButton {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Make time slot containers more compact */
+    div[data-testid="column"] {
+        padding: 2px !important;
+        margin: 0 !important;
+    }
+    
+    /* Reduce spacing in containers */
+    .stContainer > div {
+        margin: 0 !important;
+        padding: 1px 0 !important;
+    }
+    
+    /* Compact the schedule table headers */
+    .schedule-view-header {
+        margin: 2px 0 !important;
+        padding: 4px 0 !important;
+    }
+    
+    /* Reduce spacing around time slot rows */
+    .stContainer {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* AGGRESSIVE spacing reduction */
+    .stMarkdown {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    div[data-testid="stVerticalBlock"] > div {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Target all containers more aggressively */
+    .main .block-container {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+    
+    /* Remove gaps around every element */
+    .element-container {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* ELIMINATE ALL VERTICAL SPACING */
+    div {
+        margin: 0 !important;
+    }
+    
+    /* Target Streamlit containers specifically */
+    .stButton {
+        margin: 0 !important;
+        padding: 0 !important;
+        margin-bottom: 0 !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Remove spacing around program cards */
+    .program-card {
+        margin: 0 !important;
+        padding: 0 !important;
+        margin-bottom: 1px !important;
+    }
+    
+    /* Make containers ultra compact */
+    [data-testid="column"] {
+        padding: 0 !important;
+        margin: 0 !important;
+        gap: 0 !important;
+    }
+    
+    /* Hide the dot buttons with multiple approaches */
+    .program-card .stButton,
+    .program-card .stButton > div,
+    .program-card .stButton button {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
+        width: 0px !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        z-index: -999 !important;
+        pointer-events: none !important;
+    }
+    
+    /* Target any button that's small and contains a dot */
+    button {
+        font-size: inherit !important;
+    }
+    
+    button[style*="display: none"] {
+        display: none !important;
+    }
+    
+    /* Clean program button styling - more compact for tighter rows */
+    .stButton button {
+        font-size: 0.65rem !important;
+        padding: 3px 6px !important;
+        min-height: 28px !important;
+        height: 28px !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        font-weight: 500 !important;
+        border-radius: 4px !important;
+        border: 1px solid #e1e5e9 !important;
+        background: #ffffff !important;
+        color: #262730 !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
         text-overflow: ellipsis !important;
     }
     
-    /* Make program card buttons more compact and single-line */
-    div[data-testid="column"] .stButton button {
-        min-height: 24px !important;
-        height: 24px !important;
-        padding: 2px 6px !important;
-        font-size: 0.75rem !important;
-        line-height: 1.2 !important;
-        text-align: left !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        display: flex !important;
-        align-items: center !important;
+    /* Visual indicator for programs already in schedules */
+    .stButton.program-selected button {
+        border-left: 3px solid #28a745 !important;
+        background: rgba(40, 167, 69, 0.05) !important;
+    }
+    
+    /* Hover states */
+    .stButton button:hover {
+        border-color: #1E3D59 !important;
+        background: #f8f9fa !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 2px 4px rgba(30, 61, 89, 0.1) !important;
+    }
+    
+    .stButton.program-selected button:hover {
+        background: rgba(40, 167, 69, 0.1) !important;
+    }
+    
+    /* Much more compact button container spacing */
+    .stButton {
+        margin: 1px 0 !important;
+    }
+    
+    /* Reduce vertical spacing in schedule grid containers */
+    div[data-testid="column"] {
+        padding: 1px 2px !important;
+    }
+    
+    /* Clean primary and secondary button styling */
+    button[data-testid="stButton-primary"] {
+        background: #1E3D59 !important;
+        color: white !important;
+        border: 1px solid #1E3D59 !important;
+        font-weight: 600 !important;
+    }
+    
+    button[data-testid="stButton-secondary"] {
+        background: #f8f9fa !important;
+        color: #1E3D59 !important;
+        border: 1px solid #e1e5e9 !important;
+        font-weight: 400 !important;
+    }
+    
+    /* Nuclear option - hide ALL tiny buttons that might be dots */
+    button[style*="height: 0"] {
+        display: none !important;
+    }
+    
+    /* Hide buttons with minimal text content */
+    button[data-baseweb="button"]:not([title]):not([aria-label]) {
+        font-size: inherit !important;
+    }
+    
+    /* More aggressive - hide any button that's very small */
+    button[data-testid^="baseButton"]:not([title]):not([aria-label]) {
+        font-size: inherit !important;
+    }
+    
+    /* Target buttons that appear to be single character */
+    .stButton button:not([title]):not([aria-label]) {
+        font-size: inherit !important;
     }
     
     /* Heart buttons should stay small */
@@ -901,6 +1422,12 @@ st.markdown("""
     </style>
     
     <script>
+    // Simple tooltip enhancement for better mobile experience
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add better tooltip behavior if needed
+        console.log('Schedule grid loaded with enhanced tooltips');
+    });
+    
     function showProgramDetails(programName) {
         // Create a modal or expand details
         alert('Program Details: ' + programName + '\\n\\nClick functionality implemented!\\nIn a full version, this would show detailed program information.');
@@ -1124,8 +1651,8 @@ try:
                 ):
                     selected_days.append(day)
         
-        # Submit button with better styling
-        st.markdown('<div class="submit-section">', unsafe_allow_html=True)
+        # Submit button with mobile-optimized styling
+        st.markdown('<div class="submit-section primary-action">', unsafe_allow_html=True)
         st.markdown("**Ready to find programs?**")
         submitted = st.form_submit_button(label="🔍 Find Perfect Programs", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1140,6 +1667,66 @@ try:
             st.session_state.max_distance = max_distance
             st.session_state.submitted = True
             
+            # Create mobile-friendly progress indicator
+            progress_container = st.empty()
+            
+            # Step 1: Searching for programs
+            progress_container.markdown("""
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 15px 20px;
+                border-radius: 12px;
+                text-align: center;
+                margin: 20px 0;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            ">
+                <div style="
+                    color: white;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                ">
+                    🔍 Searching for programs...
+                </div>
+                <div style="
+                    color: rgba(255,255,255,0.8);
+                    font-size: 0.9rem;
+                ">
+                    Finding programs that match your criteria
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Small delay to show the first step
+            time.sleep(0.5)
+            
+            # Step 2: Fetching program details
+            progress_container.markdown("""
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 15px 20px;
+                border-radius: 12px;
+                text-align: center;
+                margin: 20px 0;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            ">
+                <div style="
+                    color: white;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                ">
+                    📋 Fetching program details...
+                </div>
+                <div style="
+                    color: rgba(255,255,255,0.8);
+                    font-size: 0.9rem;
+                ">
+                    Loading schedules and locations
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             # Filter programs
             filters = {
                 'child_age': child_age,
@@ -1152,6 +1739,88 @@ try:
             }
             
             filtered_df = filter_programs(df, filters)
+            
+            # Step 3: Loading schedules
+            progress_container.markdown("""
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 15px 20px;
+                border-radius: 12px;
+                text-align: center;
+                margin: 20px 0;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            ">
+                <div style="
+                    color: white;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                ">
+                    📅 Loading schedules...
+                </div>
+                <div style="
+                    color: rgba(255,255,255,0.8);
+                    font-size: 0.9rem;
+                ">
+                    Preparing your personalized results
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            time.sleep(0.3)
+            
+            # Final step: Show results
+            program_count = len(filtered_df)
+            if program_count == 0:
+                final_message = "😔 No programs found matching your criteria"
+                final_subtitle = "Try adjusting your search filters"
+                final_color = "linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
+            elif program_count == 1:
+                final_message = "🎉 Found 1 perfect program!"
+                final_subtitle = "Great match for your child"
+                final_color = "linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)"
+            else:
+                final_message = f"🎉 Found {program_count} programs!"
+                final_subtitle = "Multiple options available for your child"
+                final_color = "linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)"
+            
+            progress_container.markdown(f"""
+            <div style="
+                background: {final_color};
+                padding: 15px 20px;
+                border-radius: 12px;
+                text-align: center;
+                margin: 20px 0;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                animation: pulse 2s infinite;
+            ">
+                <div style="
+                    color: white;
+                    font-size: 1.2rem;
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                ">
+                    {final_message}
+                </div>
+                <div style="
+                    color: rgba(255,255,255,0.9);
+                    font-size: 0.9rem;
+                ">
+                    {final_subtitle}
+                </div>
+            </div>
+            <style>
+            @keyframes pulse {{
+                0% {{ transform: scale(1); }}
+                50% {{ transform: scale(1.02); }}
+                100% {{ transform: scale(1); }}
+            }}
+            </style>
+            """, unsafe_allow_html=True)
+            
+            time.sleep(1)
+            progress_container.empty()  # Clear the progress indicator
+            
             st.session_state.filtered_df = filtered_df
 
     # Show results if form was submitted
@@ -1170,7 +1839,7 @@ try:
         .result-count-text {{
             color: #1E3D59 !important;
             font-size: 1.4rem !important;
-            margin: 1rem 0 0.5rem 0 !important;
+            margin: 0.3rem 0 0.2rem 0 !important;
             text-align: center !important;
             padding: 0.5rem !important;
             font-weight: 600 !important;
@@ -1179,28 +1848,55 @@ try:
         <div class="result-count-text">{result_text}</div>
         """, unsafe_allow_html=True)
         
-        # Top Navigation Bar
+        # Mobile-Optimized Sticky Navigation Bar
         if len(filtered_df) > 0:
-            st.markdown('<div style="padding: 0.5rem 0; margin: 1rem 0;">', unsafe_allow_html=True)
+            # Initialize map visibility state
+            if 'show_map' not in st.session_state:
+                st.session_state.show_map = False
             
-            # Improved navigation layout - Option 3
-            nav_col1, nav_col2, nav_spacer, nav_col3 = st.columns([2, 2, 1, 3])
+            # Create sticky navigation container
+            st.markdown("""
+            <style>
+            /* Sticky navigation - targets the parent container */
+            .element-container:has(.sticky-nav) {
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 999 !important;
+                background: white !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+                border-bottom: 2px solid #e9ecef !important;
+                margin-bottom: 20px !important;
+            }
+            .sticky-nav {
+                background: white;
+                padding: 15px;
+                border-radius: 8px;
+                border: 1px solid #e9ecef;
+                margin-bottom: 10px;
+            }
+            /* Fallback approach - try to make the container sticky */
+            div[data-testid="stVerticalBlock"] > div:has(.sticky-nav) {
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 999 !important;
+                background: white !important;
+            }
+            @media (max-width: 768px) {
+                .sticky-nav {
+                    padding: 12px;
+                }
+            }
+            </style>
+            <div class="sticky-nav">
+            """, unsafe_allow_html=True)
             
-            # View mode buttons (left side)
+            # Schedule selection - label and dropdown on same line
+            nav_col1, nav_col2 = st.columns([1, 3])
+            
             with nav_col1:
-                if st.button("🗓️ Schedule View", key="schedule_view", 
-                           type="primary" if st.session_state.view_mode == "Schedule View" else "secondary",
-                           use_container_width=True):
-                    st.session_state.view_mode = "Schedule View"
+                st.markdown("**📅 View Schedule for:**")
             
             with nav_col2:
-                if st.button("📋 List View", key="list_view",
-                           type="primary" if st.session_state.view_mode == "List View" else "secondary", 
-                           use_container_width=True):
-                    st.session_state.view_mode = "List View"
-            
-            # Schedule selection dropdown (right side)
-            with nav_col3:
                 schedule_names = ["All Programs"] + list(st.session_state.saved_schedules.keys())
                 
                 # Find current schedule index
@@ -1211,10 +1907,11 @@ try:
                 
                 # Create dropdown for schedule selection
                 selected_schedule = st.selectbox(
-                    "Show:",
+                    "",
                     options=schedule_names,
                     index=current_index,
                     key="schedule_dropdown",
+                    label_visibility="collapsed",
                     help="Select which schedule to display"
                 )
                 
@@ -1223,6 +1920,16 @@ try:
                     st.session_state.current_schedule = selected_schedule
                     st.rerun()
             
+            # Map toggle button - aligned left with navigation styling
+            st.markdown("**🗺️ Map:**")
+            st.markdown('<div class="nav-button">', unsafe_allow_html=True)
+            map_button_text = "Hide Map" if st.session_state.show_map else "Show Map"
+            if st.button(map_button_text, key="map_toggle"):
+                st.session_state.show_map = not st.session_state.show_map
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # Show conflicts if any
             current_schedule_display = st.session_state.current_schedule
@@ -1236,16 +1943,14 @@ try:
                     for conflict in conflicts:
                         st.error(f"**{conflict['day']}**: {conflict['program1']} ({conflict['time1']}) overlaps with {conflict['program2']} ({conflict['time2']})")
             
-            st.markdown('</div>', unsafe_allow_html=True)
-            
             # Filter programs by current schedule
             display_df = filter_programs_by_schedule(filtered_df, st.session_state.current_schedule)
             
             # Update filtered_df for display
             filtered_df = display_df
         
-        # Create map with program locations
-        if len(filtered_df) > 0:
+        # Collapsible Map Section - Only show if toggle is enabled
+        if len(filtered_df) > 0 and st.session_state.show_map:
             # Get coordinates for all programs
             program_coords = []
             for _, program in filtered_df.iterrows():
@@ -1254,6 +1959,42 @@ try:
                     program_coords.append((prog_coords, program))
             
             if program_coords:
+                # Map container with mobile-optimized styling
+                st.markdown("""
+                <style>
+                .map-container {
+                    background: #f8f9fa;
+                    border-radius: 12px;
+                    padding: 15px;
+                    margin: 15px 0;
+                    border: 1px solid #e9ecef;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+                .map-header {
+                    font-size: 1.1rem !important;
+                    font-weight: 600 !important;
+                    color: #1E3D59 !important;
+                    margin: 0 0 15px 0 !important;
+                    padding: 0 !important;
+                    text-align: center;
+                }
+                @media (max-width: 768px) {
+                    .map-container {
+                        margin: 10px -1rem;
+                        border-radius: 0;
+                        border-left: none;
+                        border-right: none;
+                        padding: 15px 1rem;
+                    }
+                    .map-header {
+                        font-size: 1rem !important;
+                    }
+                }
+                </style>
+                <div class="map-container">
+                    <div class="map-header">🗺️ Program Locations</div>
+                """, unsafe_allow_html=True)
+                
                 # Calculate bounds for auto-zoom
                 lats = [coord[0] for coord, _ in program_coords]
                 lons = [coord[1] for coord, _ in program_coords]
@@ -1312,46 +2053,16 @@ try:
                         icon=folium.Icon(color="blue", icon="info-circle", prefix="fa"),
                     ).add_to(m)
                 
-                # Show map for both views
-                st.markdown("""
-                <style>
-                .map-header {
-                    font-size: 1.3rem !important;
-                    font-weight: 600 !important;
-                    color: #1E3D59 !important;
-                    margin: 0.2rem 0 0.2rem 0 !important;
-                    padding: 0 !important;
-                }
-                </style>
-                <div class="map-header">🗺️ Program Locations</div>
-                """, unsafe_allow_html=True)
+                # Responsive map sizing - optimized height for mobile
+                map_height = 350  # Reduced height for mobile optimization
+                st_folium(m, width="100%", height=map_height, use_container_width=True)
                 
-                # Responsive map sizing
-                map_container = st.container()
-                with map_container:
-                    st_folium(m, width="100%", height=400, use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
         
-        # Display results based on view mode
+        # Display results in schedule view format
         if len(filtered_df) > 0:
-            if st.session_state.view_mode == "List View":
-                # List View
-                st.markdown("""
-                <style>
-                .list-view-header {
-                    font-size: 1.3rem !important;
-                    font-weight: 600 !important;
-                    color: #1E3D59 !important;
-                    margin: 0.2rem 0 !important;
-                    padding: 0 !important;
-                }
-                </style>
-                <div class="list-view-header">📋 Program Details</div>
-                """, unsafe_allow_html=True)
-                for _, program in filtered_df.iterrows():
-                    display_program_card(program)
-            else:
-                # Schedule View
-                st.markdown("""
+            # Schedule View - only view mode available
+            st.markdown("""
                 <style>
                 .schedule-view-header {
                     font-size: 1.3rem !important;
@@ -1363,20 +2074,25 @@ try:
                 .schedule-instruction {
                     font-size: 0.9rem !important;
                     color: #666 !important;
-                    margin: 0.2rem 0 1rem 0 !important;
+                    margin: 0.1rem 0 0.3rem 0 !important;
                     font-style: italic !important;
                 }
                 </style>
                 <div class="schedule-view-header">📅 Weekly Schedule</div>
                 <div class="schedule-instruction">Click ♡ to save programs to your schedule</div>
                 """, unsafe_allow_html=True)
-                display_schedule_grid(filtered_df)
+            # Use standard grid with improved vertical spacing
+            display_schedule_grid(filtered_df)
         else:
             st.info("💡 **Tips for better results:**\n- Try increasing the distance range\n- Select fewer interest categories\n- Adjust the time range\n- Check more days of the week")
         
-        # Modal dialogs are triggered by button clicks and handled by @st.dialog decorator
-        if st.session_state.get('details_program_data'):
+        # Modal dialogs are triggered by session state flags
+        if st.session_state.get('show_program_details') and st.session_state.get('details_program_data'):
             program_details_modal()
+        
+        # Show save dialog when triggered from program details
+        if st.session_state.get('show_save_dialog') and st.session_state.get('popup_program_data'):
+            save_program_dialog()
     
 except Exception as e:
     st.error(f"Error: {str(e)}")
