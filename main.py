@@ -14,236 +14,85 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Mobile-Optimized Button Alignment System
+# Clean, Professional Button System
 st.markdown("""
 <style>
-/* Mobile-first button alignment system */
-/* Minimum touch target size: 44x44px with proper spacing */
+/* Professional Button System - Mobile First */
 
-/* PRIMARY ACTION BUTTONS - Centered for prominence */
+/* PRIMARY BUTTONS - Main actions */
 .primary-action button {
-    min-height: 44px !important;
-    margin: 10px 0 !important;
-    display: block !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
+    min-height: 48px !important;
+    padding: 14px 24px !important;
     font-weight: 600 !important;
     border-radius: 8px !important;
-    padding: 12px 24px !important;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: #1E3D59 !important;
     border: none !important;
     color: white !important;
     font-size: 1rem !important;
+    transition: all 0.2s ease !important;
 }
 
-/* SECONDARY ACTION BUTTONS - Standard alignment */
+.primary-action button:hover {
+    background: #2a4a66 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(30, 61, 89, 0.3) !important;
+}
+
+/* SECONDARY BUTTONS - Supporting actions */
 .secondary-action button {
     min-height: 44px !important;
-    margin: 8px 0 !important;
+    padding: 10px 20px !important;
     border-radius: 6px !important;
-    padding: 10px 16px !important;
-    font-size: 0.9rem !important;
-}
-
-/* GRID/LIST BUTTONS - Left aligned for natural reading */
-.grid-button {
-    text-align: left !important;
-    min-height: 44px !important;
-    margin: 4px 0 !important;
-    padding: 8px 12px !important;
-    border-radius: 6px !important;
-    border: 1px solid #e9ecef !important;
     background: white !important;
-    position: relative !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-}
-
-.grid-button button {
-    text-align: left !important;
-    min-height: 44px !important;
-    width: 100% !important;
-    padding: 12px 16px !important;
-    border-radius: 6px !important;
+    border: 2px solid #1E3D59 !important;
+    color: #1E3D59 !important;
     font-size: 0.9rem !important;
-    line-height: 1.3 !important;
-    background: white !important;
-    border: 1px solid #dee2e6 !important;
-    color: #333 !important;
     transition: all 0.2s ease !important;
 }
 
-.grid-button button:hover {
+.secondary-action button:hover {
     background: #f8f9fa !important;
-    border-color: #adb5bd !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
-/* PROGRAM BUTTONS WITH HEART ICONS - Force tight spacing */
-.program-button {
-    position: relative !important;
-    min-height: 38px !important;
-    margin: 1px 0 !important; /* Very tight spacing for desktop */
-    padding: 0 !important;
-}
-
-/* Target Streamlit's button container specifically */
-.program-button > div {
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-.program-button button {
-    text-align: left !important;
-    width: 100% !important;
-    min-height: 38px !important;
-    height: 38px !important; /* Force specific height */
-    padding: 6px 40px 6px 12px !important; /* Reduced padding */
-    border-radius: 4px !important;
-    background: white !important;
-    border: 1px solid #dee2e6 !important;
-    color: #333 !important;
-    font-size: 0.85rem !important;
-    line-height: 1.2 !important;
-    transition: all 0.2s ease !important;
-    margin: 0 !important; /* Force no margin */
-}
-
-/* Target Streamlit's default spacing - multiple approaches */
-div[data-testid="column"] > div > div:has(.program-button) {
-    margin: 1px 0 !important;
-    padding: 0 !important;
-}
-
-/* Force tight spacing on Streamlit's element containers */
-.element-container:has(.program-button) {
-    margin-top: 1px !important;
-    margin-bottom: 1px !important;
-    padding: 0 !important;
-}
-
-/* Alternative targeting for Streamlit containers */
-div[data-testid="stVerticalBlock"] > div:has(.program-button) {
-    margin: 1px 0 !important;
-    padding: 0 !important;
-}
-
-/* Nuclear option - force all buttons in columns to be tight */
-div[data-testid="column"] button {
-    margin: 2px 0 !important;
-}
-
-.program-button button:hover {
-    background: #f8f9fa !important;
-    border-color: #adb5bd !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-}
-
-/* FAVORITE HEART ICON - Right aligned within button */
-.favorite-heart {
-    position: absolute !important;
-    right: 10px !important; /* Closer to edge for tighter layout */
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    font-size: 1rem !important; /* Slightly smaller for desktop */
-    color: #dc3545 !important;
-    cursor: pointer !important;
-    z-index: 2 !important;
-    min-width: 20px !important; /* Smaller for desktop */
-    min-height: 20px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-/* ACTION BUTTONS IN MODALS - Centered with spacing */
+/* MODAL ACTIONS - Dialog buttons */
 .modal-actions {
     margin-top: 20px !important;
     display: flex !important;
-    gap: 10px !important;
-    flex-wrap: wrap !important;
+    gap: 12px !important;
     justify-content: center !important;
 }
 
 .modal-actions button {
     min-height: 44px !important;
     min-width: 120px !important;
-    margin: 5px !important;
     border-radius: 6px !important;
     font-weight: 500 !important;
 }
 
-/* NAVIGATION BUTTONS - Clean minimal style */
-.nav-button button {
-    min-height: 44px !important;
-    padding: 10px 20px !important;
-    border-radius: 6px !important;
-    margin: 5px 0 !important;
-    font-size: 0.9rem !important;
-}
-
-/* MOBILE RESPONSIVE ADJUSTMENTS */
+/* MOBILE RESPONSIVE */
 @media (max-width: 768px) {
     .primary-action button {
-        font-size: 0.95rem !important;
-        padding: 14px 20px !important;
-        min-height: 48px !important;
-    }
-    
-    .grid-button button, .program-button button {
-        min-height: 48px !important;
-        padding: 12px 16px !important;
-        font-size: 0.9rem !important;
-        line-height: 1.3 !important;
-    }
-    
-    .program-button {
-        margin: 4px 0 !important; /* More spacing on mobile for touch targets */
-    }
-    
-    .program-button button {
-        padding: 12px 44px 12px 16px !important; /* More space for heart on mobile */
-    }
-    
-    .favorite-heart {
-        right: 14px !important;
-        min-width: 28px !important;
-        min-height: 28px !important;
-        font-size: 1.2rem !important;
+        min-height: 52px !important;
+        padding: 16px 24px !important;
+        font-size: 1.05rem !important;
     }
     
     .modal-actions {
         flex-direction: column !important;
-        align-items: stretch !important;
+        gap: 8px !important;
     }
     
     .modal-actions button {
         width: 100% !important;
         min-height: 48px !important;
-        margin: 4px 0 !important;
     }
 }
 
-/* TOUCH TARGET SAFETY */
-button, .favorite-heart {
+/* TOUCH OPTIMIZATION */
+button {
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
-}
-
-/* BUTTON SPACING SYSTEM */
-.button-group {
-    margin: 10px 0 !important;
-}
-
-.button-row {
-    margin: 8px 0 !important;
-}
-
-.button-spacing {
-    margin: 6px 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -987,39 +836,27 @@ def display_schedule_grid(filtered_df):
     
     # Create interactive schedule using Streamlit components with sticky header
     
-    # Clean, non-sticky schedule headers
+    # Schedule Grid Headers
     st.markdown("""
     <style>
-    /* Clean schedule headers - no sticky positioning */
-    .schedule-day-header {
+    .schedule-day-header, .schedule-time-header {
         font-weight: 700 !important;
-        font-size: 1.1rem !important;
-        color: #1E3D59 !important;
+        color: var(--primary-color) !important;
         text-align: center !important;
         padding: 12px 8px !important;
-        background: #f8f9fa !important;
+        background: var(--secondary-color) !important;
         border-radius: 8px !important;
-        border: 1px solid #e9ecef !important;
-        margin-bottom: 10px !important;
+        border: 1px solid var(--border-color) !important;
+        margin-bottom: 12px !important;
     }
     
-    .schedule-time-header {
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        color: #1E3D59 !important;
-        text-align: center !important;
-        padding: 12px 8px !important;
-        background: #f8f9fa !important;
-        border-radius: 8px !important;
-        border: 1px solid #e9ecef !important;
-        margin-bottom: 10px !important;
-    }
+    .schedule-day-header { font-size: 1.1rem !important; }
+    .schedule-time-header { font-size: 1rem !important; }
     
-    /* Mobile responsive adjustments */
     @media (max-width: 768px) {
         .schedule-day-header, .schedule-time-header {
             font-size: 0.9rem !important;
-            padding: 8px 4px !important;
+            padding: 10px 6px !important;
         }
     }
     </style>
@@ -1187,588 +1024,96 @@ if 'last_schedule_name' not in st.session_state:
 if 'save_success_message' not in st.session_state:
     st.session_state.save_success_message = ""
 
-# Force light theme CSS - Nuclear Option
+# Professional Theme & Schedule Grid Styling
 st.markdown("""
-    <style>
-    /* FORCE LIGHT THEME - Override everything */
-    .stApp,
-    .main,
-    [data-testid="stAppViewContainer"],
-    .stApp > div,
-    .main > div,
-    div[data-testid="stAppViewContainer"] > div,
-    .block-container,
-    [data-testid="block-container"] {
-        background-color: #FFFFFF !important;
-        color: #262730 !important;
-    }
-    
-    /* Force all text elements to be dark */
-    .stApp *,
-    .main *,
-    [data-testid="stAppViewContainer"] *,
-    p, h1, h2, h3, h4, h5, h6, span, div, label {
-        color: #262730 !important;
-    }
-    
-    /* Force form backgrounds */
-    .stSelectbox,
-    .stMultiSelect,
-    .stNumberInput,
-    .stTextInput,
-    div[data-testid="stForm"],
-    .stCheckbox,
-    .stButton {
-        background-color: #FFFFFF !important;
-        color: #262730 !important;
-    }
-    
-    /* Essential header styling */
-    .main-header {
-        font-size: 2.2rem !important;
-        text-align: center !important;
-        margin-bottom: 2rem !important;
-        font-weight: 700 !important;
-        color: #1E3D59 !important;
-    }
-    
-    /* Program card styling with forced light backgrounds */
-    .program-card-container {
-        background-color: #f8f9fa !important;
-        color: #262730 !important;
-        border: 1px solid #e9ecef !important;
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 0.3rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .program-card-title {
-        color: #1E3D59 !important;
-        font-weight: bold;
-        margin-bottom: 0.2rem;
-        font-size: 1.2rem;
-    }
-    
-    .program-card-provider {
-        color: #1E3D59 !important;
-        font-weight: 600;
-        margin-bottom: 0.6rem;
-        font-size: 1.0rem;
-    }
-    
-    .program-card-info-bar {
-        background: #e8f4f8 !important;
-        border-radius: 8px;
-        padding: 0.7rem;
-        margin-bottom: 0.8rem;
-        border-left: 4px solid #1E3D59;
-    }
-    
-    .program-card-text {
-        margin: 0.2rem 0;
-        font-weight: 600;
-        color: #1E3D59 !important;
-    }
-    
-    .program-card-secondary {
-        margin: 0.4rem 0;
-        color: #555 !important;
-    }
-    
-    .program-card-link {
-        text-decoration: none;
-        color: #1E3D59 !important;
-    }
-    
-    /* Override ANY dark theme detection */
-    @media (prefers-color-scheme: dark) {
-        .stApp,
-        .main,
-        [data-testid="stAppViewContainer"],
-        .stApp > div,
-        .main > div {
-            background-color: #FFFFFF !important;
-            color: #262730 !important;
-        }
-    }
-    
-    /* Override Streamlit's theme classes */
-    .stApp[data-theme="dark"],
-    [data-testid="stAppViewContainer"][data-theme="dark"] {
-        background-color: #FFFFFF !important;
-        color: #262730 !important;
-    }
-    
-    .stApp[data-theme="dark"] *,
-    [data-testid="stAppViewContainer"][data-theme="dark"] * {
-        background-color: inherit !important;
-        color: #262730 !important;
-    }
-    
-    /* Fix button contrast with light backgrounds */
+<style>
+/* PROFESSIONAL THEME SYSTEM */
+:root {
+    --primary-color: #1E3D59;
+    --secondary-color: #f8f9fa;
+    --accent-color: #28a745;
+    --text-color: #262730;
+    --border-color: #e9ecef;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* FORCE LIGHT THEME */
+.stApp, .main, [data-testid="stAppViewContainer"] {
+    background-color: #FFFFFF !important;
+    color: var(--text-color) !important;
+}
+
+/* MAIN HEADER */
+.main-header {
+    font-size: 2.2rem !important;
+    text-align: center !important;
+    margin-bottom: 2rem !important;
+    font-weight: 700 !important;
+    color: var(--primary-color) !important;
+}
+
+/* PROGRAM CARD STYLING */
+.program-card-container {
+    background-color: var(--secondary-color) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 0.3rem;
+    box-shadow: var(--shadow);
+}
+
+.program-card-title {
+    color: var(--primary-color) !important;
+    font-weight: bold;
+    margin-bottom: 0.2rem;
+    font-size: 1.2rem;
+}
+
+.program-card-info-bar {
+    background: #e8f4f8 !important;
+    border-radius: 8px;
+    padding: 0.7rem;
+    margin-bottom: 0.8rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* SCHEDULE GRID BUTTONS */
+.stButton button {
+    background: white !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    text-align: left !important;
+    transition: all 0.2s ease !important;
+    min-height: 40px !important;
+}
+
+.stButton button:hover {
+    border-color: var(--primary-color) !important;
+    background: var(--secondary-color) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow) !important;
+}
+
+/* SAVED PROGRAM INDICATOR */
+.program-selected button {
+    border-left: 3px solid var(--accent-color) !important;
+    background: rgba(40, 167, 69, 0.05) !important;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
     .stButton button {
-        background-color: #ffffff !important;
-        color: #1E3D59 !important;
-        border: 2px solid #1E3D59 !important;
-        font-weight: 600 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        min-height: 44px !important;
+        padding: 10px 14px !important;
+        font-size: 0.9rem !important;
     }
-    
-    .stButton button:hover {
-        background-color: #f0f8ff !important;
-        border-color: #1E3D59 !important;
-        color: #1E3D59 !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-    }
-    
-    /* Primary buttons - light background, dark text */
-    button[data-testid="baseButton-primary"],
-    button[kind="primary"] {
-        background-color: #ffffff !important;
-        color: #1E3D59 !important;
-        border: 2px solid #1E3D59 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }
-    
-    button[data-testid="baseButton-primary"]:hover,
-    button[kind="primary"]:hover {
-        background-color: #f0f8ff !important;
-        border-color: #1E3D59 !important;
-        color: #1E3D59 !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-    }
-    
-    /* Secondary buttons - also light background */
-    button[data-testid="baseButton-secondary"],
-    button[kind="secondary"] {
-        background-color: #f8f9fa !important;
-        color: #1E3D59 !important;
-        border: 2px solid #e9ecef !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-    }
-    
-    button[data-testid="baseButton-secondary"]:hover,
-    button[kind="secondary"]:hover {
-        background-color: #e9ecef !important;
-        color: #1E3D59 !important;
-        border-color: #1E3D59 !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
-    }
-    
-    /* Compact program card styling with no margins/padding for max text space */
-    .program-card .stButton button {
-        min-height: 28px !important;
-        height: 28px !important;
-        max-height: 28px !important;
-        padding: 0px !important;
-        margin: 0px !important;
-        font-size: 0.6rem !important;
-        line-height: 1.0 !important;
-        text-align: left !important;
-        white-space: pre-wrap !important;
-        overflow: hidden !important;
-        display: block !important;
-        background: rgba(255, 255, 255, 0.95) !important;
-        color: #262730 !important;
-        border: 1px solid rgba(0, 0, 0, 0.1) !important;
-        font-weight: normal !important;
-        word-break: break-word !important;
-        box-sizing: border-box !important;
-    }
-    
-    /* Make program card buttons more compact with no margins/padding for max text space */
-    div[data-testid="column"] .stButton button {
-        min-height: 28px !important;
-        height: 28px !important;
-        max-height: 28px !important;
-        padding: 0px !important;
-        margin: 0px !important;
-        font-size: 0.6rem !important;
-        line-height: 1.0 !important;
-        text-align: left !important;
-        white-space: pre-wrap !important;
-        overflow: hidden !important;
-        display: block !important;
-        font-weight: normal !important;
-        word-break: break-word !important;
-        box-sizing: border-box !important;
-    }
-    
-    /* Remove ALL margins and padding everywhere */
-    .program-card .stButton {
-        margin: 0px !important;
-        padding: 0px !important;
-    }
-    
-    .program-card .stButton > div {
-        margin: 0px !important;
-        padding: 0px !important;
-    }
-    
-    /* NUCLEAR OPTION - Remove ALL margins and padding everywhere */
-    .program-card .stButton,
-    .program-card .stButton > div,
-    .program-card .stButton button,
-    div[data-testid="column"] .stButton,
-    div[data-testid="column"] .stButton > div,
-    div[data-testid="column"] .stButton button,
-    div[data-testid="column"] button,
-    .program-card div[data-testid="column"],
-    div[data-testid="column"] {
-        margin: 0 !important;
-        padding: 0 !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
-        align-items: flex-start !important;
-        border-spacing: 0 !important;
-    }
-    
-    /* DEBUG: Force 2-line button layout with different approach */
-    .program-card .stButton button,
-    div[data-testid="column"] .stButton button {
-        height: 28px !important;
-        min-height: 28px !important;
-        max-height: 28px !important;
-        font-size: 0.45rem !important;
-        line-height: 1.0 !important;
-        overflow: hidden !important;
-        white-space: pre-line !important;
-        word-wrap: break-word !important;
-        border: 1px solid #ddd !important;
-        background: white !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-        padding: 2px !important;
-        margin: 0 !important;
-        display: block !important;
-        text-align: left !important;
-    }
-    
-    /* Reduce vertical spacing in schedule grid */
-    .program-card {
-        margin: 1px 0 !important;
-        padding: 1px !important;
-    }
-    
-    .program-card .stButton {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* Make time slot containers more compact */
-    div[data-testid="column"] {
-        padding: 2px !important;
-        margin: 0 !important;
-    }
-    
-    /* Reduce spacing in containers */
-    .stContainer > div {
-        margin: 0 !important;
-        padding: 1px 0 !important;
-    }
-    
-    /* Compact the schedule table headers */
-    .schedule-view-header {
-        margin: 2px 0 !important;
-        padding: 4px 0 !important;
-    }
-    
-    /* Reduce spacing around time slot rows */
-    .stContainer {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* AGGRESSIVE spacing reduction */
-    .stMarkdown {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    div[data-testid="stVerticalBlock"] > div {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* Target all containers more aggressively */
-    .main .block-container {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
-    }
-    
-    /* Remove gaps around every element */
-    .element-container {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* ELIMINATE ALL VERTICAL SPACING */
-    div {
-        margin: 0 !important;
-    }
-    
-    /* Target Streamlit containers specifically */
-    .stButton {
-        margin: 0 !important;
-        padding: 0 !important;
-        margin-bottom: 0 !important;
-        margin-top: 0 !important;
-    }
-    
-    /* Remove spacing around program cards */
-    .program-card {
-        margin: 0 !important;
-        padding: 0 !important;
-        margin-bottom: 1px !important;
-    }
-    
-    /* Make containers ultra compact */
-    [data-testid="column"] {
-        padding: 0 !important;
-        margin: 0 !important;
-        gap: 0 !important;
-    }
-    
-    /* Hide the dot buttons with multiple approaches */
-    .program-card .stButton,
-    .program-card .stButton > div,
-    .program-card .stButton button {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0px !important;
-        width: 0px !important;
-        opacity: 0 !important;
-        position: absolute !important;
-        top: -9999px !important;
-        left: -9999px !important;
-        z-index: -999 !important;
-        pointer-events: none !important;
-    }
-    
-    /* Target any button that's small and contains a dot */
-    button {
-        font-size: inherit !important;
-    }
-    
-    button[style*="display: none"] {
-        display: none !important;
-    }
-    
-    /* Clean program button styling - more compact for tighter rows */
-    .stButton button {
-        font-size: 0.65rem !important;
-        padding: 3px 6px !important;
-        min-height: 28px !important;
-        height: 28px !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
-        font-weight: 500 !important;
-        border-radius: 4px !important;
-        border: 1px solid #e1e5e9 !important;
-        background: #ffffff !important;
-        color: #262730 !important;
-        overflow: hidden !important;
-        white-space: nowrap !important;
-        text-overflow: ellipsis !important;
-    }
-    
-    /* Visual indicator for programs already in schedules */
-    .stButton.program-selected button {
-        border-left: 3px solid #28a745 !important;
-        background: rgba(40, 167, 69, 0.05) !important;
-    }
-    
-    /* Hover states */
-    .stButton button:hover {
-        border-color: #1E3D59 !important;
-        background: #f8f9fa !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 2px 4px rgba(30, 61, 89, 0.1) !important;
-    }
-    
-    .stButton.program-selected button:hover {
-        background: rgba(40, 167, 69, 0.1) !important;
-    }
-    
-    /* Much more compact button container spacing */
-    .stButton {
-        margin: 1px 0 !important;
-    }
-    
-    /* Reduce vertical spacing in schedule grid containers */
-    div[data-testid="column"] {
-        padding: 1px 2px !important;
-    }
-    
-    /* Clean primary and secondary button styling */
-    button[data-testid="stButton-primary"] {
-        background: #1E3D59 !important;
-        color: white !important;
-        border: 1px solid #1E3D59 !important;
-        font-weight: 600 !important;
-    }
-    
-    button[data-testid="stButton-secondary"] {
-        background: #f8f9fa !important;
-        color: #1E3D59 !important;
-        border: 1px solid #e1e5e9 !important;
-        font-weight: 400 !important;
-    }
-    
-    /* Nuclear option - hide ALL tiny buttons that might be dots */
-    button[style*="height: 0"] {
-        display: none !important;
-    }
-    
-    /* Hide buttons with minimal text content */
-    button[data-baseweb="button"]:not([title]):not([aria-label]) {
-        font-size: inherit !important;
-    }
-    
-    /* More aggressive - hide any button that's very small */
-    button[data-testid^="baseButton"]:not([title]):not([aria-label]) {
-        font-size: inherit !important;
-    }
-    
-    /* Target buttons that appear to be single character */
-    .stButton button:not([title]):not([aria-label]) {
-        font-size: inherit !important;
-    }
-    
-    /* Heart buttons should stay small */
-    .program-card .stButton button[title*="Save"],
-    .program-card .stButton button[title*="Remove"] {
-        min-height: 16px !important;
-        height: 16px !important;
-        width: 18px !important;
-        padding: 0px 2px !important;
-        font-size: 0.6rem !important;
-    }
-    </style>
-    
-    <script>
-    // Simple tooltip enhancement for better mobile experience
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add better tooltip behavior if needed
-        console.log('Schedule grid loaded with enhanced tooltips');
-    });
-    
-    function showProgramDetails(programName) {
-        // Create a modal or expand details
-        alert('Program Details: ' + programName + '\\n\\nClick functionality implemented!\\nIn a full version, this would show detailed program information.');
-    }
-    
-    function toggleFavorite(event, programData) {
-        event.stopPropagation(); // Prevent card click
-        
-        // Show save to schedule popup
-        showSavePopup(programData);
-    }
-    
-    function showSavePopup(programData) {
-        // Create popup overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'save-popup-overlay';
-        overlay.onclick = (e) => {
-            if (e.target === overlay) closeSavePopup();
-        };
-        
-        // Get existing schedules from Streamlit session state (placeholder)
-        const existingSchedules = ['Ami 1', 'Mia 3', 'Emma Fall 2024']; // This would come from session state
-        
-        // Create popup content
-        overlay.innerHTML = `
-            <div class="save-popup">
-                <h3>Save to Schedule</h3>
-                <div class="form-group">
-                    <label for="schedule-select">Select Schedule:</label>
-                    <select id="schedule-select">
-                        <option value="">-- Create New Schedule --</option>
-                        ${existingSchedules.map(schedule => `<option value="${schedule}">${schedule}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="schedule-name">Schedule Name:</label>
-                    <input type="text" id="schedule-name" placeholder="e.g., Ami 1, Mia 3, Emma Fall 2024" />
-                </div>
-                <div class="save-popup-actions">
-                    <button class="btn-secondary" onclick="closeSavePopup()">Cancel</button>
-                    <button class="btn-primary" onclick="saveToSchedule('${programData}')">Save Program</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(overlay);
-        
-        // Handle schedule selection
-        const select = document.getElementById('schedule-select');
-        const nameInput = document.getElementById('schedule-name');
-        
-        select.onchange = () => {
-            if (select.value) {
-                nameInput.value = select.value;
-                nameInput.disabled = true;
-            } else {
-                nameInput.value = '';
-                nameInput.disabled = false;
-                nameInput.focus();
-            }
-        };
-    }
-    
-    function closeSavePopup() {
-        const overlay = document.querySelector('.save-popup-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
-    }
-    
-    function saveToSchedule(programData) {
-        const scheduleName = document.getElementById('schedule-name').value.trim();
-        
-        if (!scheduleName) {
-            alert('Please enter a schedule name');
-            return;
-        }
-        
-        // In a full implementation, this would update Streamlit session state
-        console.log('Saving program to schedule:', scheduleName, programData);
-        
-        // Show success message
-        alert(`Program saved to "${scheduleName}" schedule!\\n\\nIn a full version, this would:\\n- Update the session state\\n- Add conflict detection\\n- Refresh the schedule view`);
-        
-        closeSavePopup();
-    }
-    
-    function switchSchedule(scheduleName) {
-        console.log('Switching to schedule:', scheduleName);
-        // This would trigger a Streamlit rerun with the new schedule
-    }
-    
-    function deleteSchedule(scheduleName) {
-        if (confirm(`Are you sure you want to delete the "${scheduleName}" schedule?`)) {
-            console.log('Deleting schedule:', scheduleName);
-            // This would update session state and rerun
-        }
-    }
-    
-    function duplicateSchedule(scheduleName) {
-        const newName = prompt(`Enter name for duplicate of "${scheduleName}":`, scheduleName + ' Copy');
-        if (newName && newName.trim()) {
-            console.log('Duplicating schedule:', scheduleName, 'to', newName.trim());
-            // This would update session state and rerun
-        }
-    }
-    
-    function renameSchedule(scheduleName) {
-        const newName = prompt(`Enter new name for "${scheduleName}":`, scheduleName);
-        if (newName && newName.trim() && newName.trim() !== scheduleName) {
-            console.log('Renaming schedule:', scheduleName, 'to', newName.trim());
-            // This would update session state and rerun
-        }
-    }
-    </script>
+}
+</style>
 """, unsafe_allow_html=True)
 
 # App header
@@ -2091,18 +1436,17 @@ try:
             if 'show_map' not in st.session_state:
                 st.session_state.show_map = False
             
-            # Use Streamlit container with CSS styling (more reliable approach)
+            # Clean Navigation Container
             with st.container():
                 st.markdown("""
                 <style>
-                /* Simple, working navigation bar */
-                .stContainer {
+                .navigation-container {
                     background: white !important;
-                    padding: 15px !important;
-                    border: 1px solid #e9ecef !important;
-                    border-radius: 8px !important;
-                    margin-bottom: 20px !important;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+                    padding: 20px !important;
+                    border: 1px solid var(--border-color) !important;
+                    border-radius: 12px !important;
+                    margin-bottom: 24px !important;
+                    box-shadow: var(--shadow) !important;
                 }
                 </style>
                 """, unsafe_allow_html=True)
@@ -2356,26 +1700,27 @@ try:
         
         # Display results in schedule view format with enhanced empty states
         if len(filtered_df) > 0:
-            # Schedule View - only view mode available
+            # Schedule View Header
             st.markdown("""
-                <style>
-                .schedule-view-header {
-                    font-size: 1.3rem !important;
-                    font-weight: 600 !important;
-                    color: #1E3D59 !important;
-                    margin: 0.2rem 0 !important;
-                    padding: 0 !important;
-                }
-                .schedule-instruction {
-                    font-size: 0.9rem !important;
-                    color: #666 !important;
-                    margin: 0.1rem 0 0.3rem 0 !important;
-                    font-style: italic !important;
-                }
-                </style>
-                <div class="schedule-view-header">📅 Weekly Schedule</div>
-                <div class="schedule-instruction">Click ♡ to save programs to your schedule</div>
-                """, unsafe_allow_html=True)
+            <style>
+            .schedule-view-header {
+                font-size: 1.4rem !important;
+                font-weight: 600 !important;
+                color: var(--primary-color) !important;
+                margin: 1rem 0 0.5rem 0 !important;
+                text-align: center !important;
+            }
+            .schedule-instruction {
+                font-size: 0.95rem !important;
+                color: #6c757d !important;
+                margin-bottom: 1rem !important;
+                text-align: center !important;
+                font-style: italic !important;
+            }
+            </style>
+            <div class="schedule-view-header">📅 Weekly Schedule</div>
+            <div class="schedule-instruction">Click 💾 Save to add programs to your schedule</div>
+            """, unsafe_allow_html=True)
             # Use standard grid with improved vertical spacing
             display_schedule_grid(filtered_df)
         else:
