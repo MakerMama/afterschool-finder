@@ -391,17 +391,11 @@ def program_details_modal():
         st.markdown(f"### {icon} {program.get('Program Name', 'N/A')}")
         st.markdown(f"{program.get('Provider Name', 'N/A')}")
         
-        # Show visual badges in the modal header
-        badges_html = ""
+        # Show distance badge only (availability status removed as it's now on cards)
         if distance_text:
             badge_color = "#28a745" if distance_class == "close" else "#ffc107" if distance_class == "medium" else "#dc3545"
-            badges_html += f'<span style="font-size: 0.8rem; background: {badge_color}; color: white; padding: 3px 8px; border-radius: 12px; margin-right: 6px;">{distance_text}</span>'
-        
-        if availability_status:
-            badges_html += f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 3px 8px; border-radius: 12px; margin-right: 6px;">{availability_status}</span>'
-        
-        if badges_html:
-            st.markdown(badges_html, unsafe_allow_html=True)
+            distance_badge = f'<span style="font-size: 0.8rem; background: {badge_color}; color: white; padding: 3px 8px; border-radius: 12px; margin-right: 6px;">{distance_text}</span>'
+            st.markdown(distance_badge, unsafe_allow_html=True)
     
     with col2:
         # Quick save button
@@ -436,11 +430,12 @@ def program_details_modal():
         else:
             if st.button("💾 Save", type="primary", use_container_width=True):
                 st.session_state.popup_program_data = program
+                st.session_state.save_success_message = ""  # Clear previous success message
+                # Clear save context for regular saves (not from Add Programs)
+                st.session_state.save_context_schedule = None
                 st.session_state.show_save_dialog = True
                 st.session_state.show_program_details = False  # Close details modal
                 st.rerun()
-    
-    st.markdown("---")
     
     # Program details in two columns
     detail_col1, detail_col2 = st.columns([3, 2])
@@ -554,6 +549,7 @@ def save_program_dialog():
         st.error("No program data available")
         return
     
+    
     program = st.session_state.popup_program_data
     program_name = program.get('Program Name', 'N/A')
     
@@ -630,9 +626,18 @@ def save_program_dialog():
     existing_schedules = list(st.session_state.saved_schedules.keys())
     schedule_options = ["-- Create New Schedule --"] + existing_schedules
     
+    # Determine default selection based on context
+    default_index = 0  # Default to "Create New Schedule"
+    
+    # If we have a save context (from Add Programs button), pre-select that schedule
+    if st.session_state.save_context_schedule and st.session_state.save_context_schedule in existing_schedules:
+        context_schedule = st.session_state.save_context_schedule
+        default_index = existing_schedules.index(context_schedule) + 1  # +1 because of "Create New" option
+    
     selected_option = st.selectbox(
         "Choose a schedule:",
         options=schedule_options,
+        index=default_index,
         key="modal_schedule_selectbox"
     )
     
@@ -671,7 +676,7 @@ def save_program_dialog():
                 """, unsafe_allow_html=True)
             
             # Only show validation messages for new schedules, not existing ones
-            elif schedule_name not in st.session_state.schedules:
+            elif schedule_name not in st.session_state.saved_schedules:
                 # Check for good naming (looks like a name)
                 if (len(schedule_name) >= 2 and 
                       schedule_name[0].isupper() and 
@@ -702,8 +707,6 @@ def save_program_dialog():
         st.markdown(f'<div class="save-success">✅ {st.session_state.save_success_message}</div>', unsafe_allow_html=True)
         # Clear success message after showing it
         st.session_state.save_success_message = ""
-    
-    st.markdown("---")
     
     # Action buttons with mobile-optimized styling and Enter key support
     st.markdown('<div class="modal-actions">', unsafe_allow_html=True)
@@ -738,6 +741,8 @@ def save_program_dialog():
                     st.session_state.show_save_popup = False
                     st.session_state.show_save_dialog = False
                     st.session_state.popup_program_data = None
+                    # Clear the save context since we've successfully saved
+                    st.session_state.save_context_schedule = None
                     
                     # Add a brief success message in main app
                     st.success(f"✅ {program_name} saved to '{schedule_name_clean}' schedule!", icon="🎉")
@@ -752,6 +757,8 @@ def save_program_dialog():
             st.session_state.show_save_popup = False
             st.session_state.show_save_dialog = False
             st.session_state.popup_program_data = None
+            # Clear the save context when canceling
+            st.session_state.save_context_schedule = None
             st.rerun()
     
     with col3:
@@ -766,6 +773,183 @@ def save_program_dialog():
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Removed alternative grid functions - keeping only standard view
+
+def get_desktop_encouragement_hint(filtered_df, current_schedule):
+    """Generate smart hints to encourage desktop grid view when beneficial."""
+    if current_schedule == 'All Programs':
+        return None
+    
+    # Count programs across multiple days
+    days_with_programs = len(filtered_df['Day of the week'].unique()) if len(filtered_df) > 0 else 0
+    total_programs = len(filtered_df)
+    
+    if days_with_programs >= 3 and total_programs >= 3:
+        return "💡 **Grid view** shows all your programs at once - perfect for spotting time conflicts and scheduling gaps!"
+    elif total_programs >= 5:
+        return "💡 **Grid view** helps visualize your busy schedule across the full week"
+    elif days_with_programs >= 2:
+        return "💡 See all your program days side-by-side in **Grid view**"
+    
+    return None
+
+def display_mobile_schedule_view(filtered_df):
+    """Display mobile-optimized single day view with program cards."""
+    
+    available_days = sorted(filtered_df['Day of the week'].unique()) if len(filtered_df) > 0 else ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    
+    # Initialize selected day in session state
+    if 'mobile_selected_day' not in st.session_state:
+        st.session_state.mobile_selected_day = available_days[0] if available_days else 'Monday'
+    
+    # Streamlined day selection with tabs-style interface
+    st.markdown('<div style="margin: 10px 0;">', unsafe_allow_html=True)
+    
+    # Create horizontal day selector buttons
+    cols = st.columns(len(available_days))
+    for i, day in enumerate(available_days):
+        with cols[i]:
+            day_short = day[:3]  # Mon, Tue, Wed, etc.
+            is_selected = day == st.session_state.mobile_selected_day
+            button_style = "primary" if is_selected else "secondary"
+            
+            if st.button(day_short, key=f"day_tab_{day}", type=button_style, use_container_width=True):
+                st.session_state.mobile_selected_day = day
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Add Programs button for schedule views (not All Programs view)
+    current_schedule = st.session_state.get('current_schedule', 'Schedule')
+    if current_schedule != 'All Programs':
+        if st.button(f"➕ Add Programs to {current_schedule}", use_container_width=True, type="secondary"):
+            # Set the save context to remember which schedule we're adding to
+            st.session_state.save_context_schedule = current_schedule
+            # Switch to All Programs view temporarily for adding programs
+            st.session_state.current_schedule = 'All Programs'
+            st.success(f"💡 Browse programs below and save them to **{current_schedule}'s schedule**")
+            st.rerun()
+    
+    selected_day = st.session_state.mobile_selected_day
+    
+    # Filter programs for selected day
+    day_programs = filtered_df[filtered_df['Day of the week'] == selected_day].copy()
+    
+    if len(day_programs) == 0:
+        st.info(f"📅 No programs found for {selected_day}.\n\nTry selecting a different day or adjusting your filters.")
+        return
+    
+    # Sort programs by start time
+    day_programs['start_time_minutes'] = day_programs['Start time'].apply(
+        lambda x: parse_time(x) if pd.notna(x) and str(x).strip() else 0
+    )
+    day_programs = day_programs.sort_values('start_time_minutes')
+    
+    # Get current schedule name for combined header
+    current_schedule = st.session_state.get('current_schedule', 'Schedule')
+    if current_schedule == 'All Programs':
+        header_text = f"📅 {selected_day} Programs ({len(day_programs)} found)"
+    else:
+        header_text = f"📅 {current_schedule}'s {selected_day} Schedule ({len(day_programs)} found)"
+    
+    st.markdown(f'<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1rem 0; text-align: center;">{header_text}</div>', unsafe_allow_html=True)
+    
+    # Show smart desktop encouragement hint
+    current_schedule = st.session_state.get('current_schedule', 'Schedule')
+    hint = get_desktop_encouragement_hint(filtered_df, current_schedule)
+    if hint:
+        st.info(hint)
+    
+    # Display programs as mobile cards
+    for idx, (_, program) in enumerate(day_programs.iterrows()):
+        with st.container():
+            # Create mobile card with all program details
+            program_name = program.get('Program Name', 'Program')
+            provider_name = program.get('Provider Name', 'Provider')
+            start_time = program.get('Start time', 'TBD')
+            end_time = program.get('End time', 'TBD')
+            address = program.get('Address', 'Address TBD')
+            min_age = program.get('Min Age', 'N/A')
+            max_age = program.get('Max Age', 'N/A')
+            cost = program.get('Cost', 0)
+            category = program.get('Interest Category', 'General')
+            
+            # Get visual elements
+            category_icon = get_category_icon(category)
+            distance_class, distance_text = get_distance_badge_info(program.get('Distance', 0))
+            availability_status, availability_color = get_availability_status(program)
+            
+            # Check if program is already saved to any schedule
+            program_key = f"{program_name}|{provider_name}|{program.get('Day of the week', '')}|{start_time}"
+            is_saved = False
+            for schedule_programs in st.session_state.saved_schedules.values():
+                for saved_prog in schedule_programs:
+                    saved_key = f"{saved_prog.get('Program Name', '')}|{saved_prog.get('Provider Name', '')}|{saved_prog.get('Day of the week', '')}|{saved_prog.get('Start time', '')}"
+                    if saved_key == program_key:
+                        is_saved = True
+                        break
+                if is_saved:
+                    break
+            
+            # Show availability badge and heart icon if saved
+            if is_saved:
+                # Show availability badge first, then heart icon
+                availability_badge = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 3px 8px; border-radius: 12px; margin-right: 6px;">{availability_status}</span>'
+                heart_badge = '<span style="color: #dc3545; font-weight: 600;">❤️ Saved</span>'
+                status_display = f'{availability_badge}<br>{heart_badge}'
+            else:
+                # Show only availability badge
+                status_display = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 3px 8px; border-radius: 12px;">{availability_status}</span>'
+            
+            # Format cost display
+            if cost and cost > 0:
+                cost_display = f"${cost:.0f}"
+            else:
+                cost_display = "Price TBD"
+            
+            # Format age range
+            if pd.notna(min_age) and pd.notna(max_age):
+                age_display = f"Ages {int(min_age)}-{int(max_age)}"
+            else:
+                age_display = "All ages"
+            
+            # Format the distance text
+            distance_display = f' • 🚗 {distance_text}' if distance_text else ''
+            
+            st.markdown(f"""
+            <div class="mobile-program-card">
+                <div class="mobile-card-header">
+                    {category_icon} {program_name}
+                </div>
+                <div class="mobile-card-time">
+                    ⏰ {start_time} - {end_time}
+                </div>
+                <div class="mobile-card-details">
+                    📍 {provider_name}<br>
+                    {status_display}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Action buttons
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("👁️ View Details", key=f"mobile_details_{idx}", use_container_width=True):
+                    st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
+                    st.session_state.show_program_details = True
+                    st.rerun()
+            
+            with col2:
+                if st.button("💾 Save Program", key=f"mobile_save_{idx}", use_container_width=True):
+                    st.session_state.popup_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
+                    st.session_state.save_success_message = ""  # Clear previous success message
+                    # Clear save context for regular saves (not from Add Programs)  
+                    st.session_state.save_context_schedule = None
+                    st.session_state.show_save_dialog = True
+                    st.rerun()
+            
+            # Add spacing between cards
+            st.markdown('<div style="margin-bottom: 10px;"></div>', unsafe_allow_html=True)
 
 def display_schedule_grid(filtered_df):
     """Display programs in a weekly schedule grid with interactive save buttons (ORIGINAL VERSION)"""
@@ -1002,6 +1186,8 @@ if 'last_schedule_name' not in st.session_state:
     st.session_state.last_schedule_name = ""
 if 'save_success_message' not in st.session_state:
     st.session_state.save_success_message = ""
+if 'save_context_schedule' not in st.session_state:
+    st.session_state.save_context_schedule = None
 
 # Professional Theme & Schedule Grid Styling
 st.markdown("""
@@ -1014,6 +1200,12 @@ st.markdown("""
     --text-color: #262730;
     --border-color: #e9ecef;
     --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --font-size-small: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-large: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-xxl: 1.5rem;
+    --font-size-header: 2.2rem;
 }
 
 /* FORCE LIGHT THEME */
@@ -1024,7 +1216,7 @@ st.markdown("""
 
 /* MAIN HEADER */
 .main-header {
-    font-size: 2.2rem !important;
+    font-size: var(--font-size-header) !important;
     text-align: center !important;
     margin-bottom: 2rem !important;
     font-weight: 700 !important;
@@ -1044,9 +1236,9 @@ st.markdown("""
 
 .program-card-title {
     color: var(--primary-color) !important;
-    font-weight: bold;
+    font-weight: 600 !important;
     margin-bottom: 0.2rem;
-    font-size: 1.2rem;
+    font-size: var(--font-size-xl) !important;
 }
 
 .program-card-info-bar {
@@ -1057,6 +1249,17 @@ st.markdown("""
     border-left: 4px solid var(--primary-color);
 }
 
+.program-card-text {
+    font-size: var(--font-size-base) !important;
+    margin-bottom: 0.25rem;
+}
+
+.program-card-secondary {
+    font-size: var(--font-size-small) !important;
+    color: #6c757d !important;
+    margin-bottom: 0.25rem;
+}
+
 /* SCHEDULE GRID BUTTONS */
 .stButton button {
     background: white !important;
@@ -1064,7 +1267,7 @@ st.markdown("""
     border: 1px solid var(--border-color) !important;
     border-radius: 6px !important;
     padding: 8px 12px !important;
-    font-size: 0.85rem !important;
+    font-size: var(--font-size-small) !important;
     font-weight: 500 !important;
     text-align: left !important;
     transition: all 0.2s ease !important;
@@ -1086,17 +1289,25 @@ st.markdown("""
 
 /* MOBILE RESPONSIVE */
 @media (max-width: 768px) {
+    .main-header {
+        font-size: var(--font-size-xxl) !important;
+    }
+    
     .stButton button {
         min-height: 44px !important;
         padding: 10px 14px !important;
-        font-size: 0.9rem !important;
+        font-size: var(--font-size-base) !important;
+    }
+    
+    .program-card-title {
+        font-size: var(--font-size-large) !important;
     }
 }
 </style>
 """, unsafe_allow_html=True)
 
 # App header
-st.markdown("<h1 class='main-header' style='font-size: 2.2rem; color: #1E3D59 !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; white-space: nowrap; font-weight: 700;'>📚 Find Perfect After-School Programs</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-header' style='font-size: 2.2rem; color: #1E3D59 !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; font-weight: 700;'>📚 After-School Program Finder</h1>", unsafe_allow_html=True)
 
 # Load data
 try:
@@ -1127,7 +1338,7 @@ try:
     # Create form with improved organization
     with st.form(key='program_filter_form'):
         # Child Information Section
-        st.markdown('<div style="font-size: 1.1rem; font-weight: 600; color: #1E3D59; margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">👶 Child Information</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">👶 Child Information</div>', unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col1:
@@ -1144,7 +1355,7 @@ try:
             st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
         
         # Program Interests
-        st.markdown('<div style="font-size: 1.1rem; font-weight: 600; color: #1E3D59; margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">🎨 Program Interests</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🎨 Program Interests</div>', unsafe_allow_html=True)
         selected_interests = st.multiselect(
             "What activities interest your child?",
             options=interest_categories,
@@ -1153,7 +1364,7 @@ try:
         )
         
         # Location & Distance Section
-        st.markdown('<div style="font-size: 1.1rem; font-weight: 600; color: #1E3D59; margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">📍 Location & Distance</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📍 Location & Distance</div>', unsafe_allow_html=True)
         
         col1, col2 = st.columns([3, 1])
         with col1:
@@ -1174,7 +1385,7 @@ try:
             )
         
         # Schedule Preferences Section
-        st.markdown('<div style="font-size: 1.1rem; font-weight: 600; color: #1E3D59; margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">⏰ Schedule Preferences</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">⏰ Schedule Preferences</div>', unsafe_allow_html=True)
         
         time_col1, time_col2 = st.columns(2)
         with time_col1:
@@ -1194,23 +1405,20 @@ try:
             )
         
         # Days of week - improved mobile-friendly selection
-        st.markdown('<div style="font-size: 1.1rem; font-weight: 600; color: #1E3D59; margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">📅 Days Available</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📅 Days Available</div>', unsafe_allow_html=True)
         st.markdown("Select the days your child is available for programs:")
         
-        # Create a more mobile-friendly day selection interface
+        # Create a mobile-friendly day selection interface with proper order
         selected_days = []
-        day_cols = st.columns(4)  # 4 columns for better mobile layout
         
-        for i, day in enumerate(days_of_week):
-            col_index = i % 4
-            with day_cols[col_index]:
-                is_selected = day in st.session_state.selected_days
-                if st.checkbox(
-                    day, 
-                    value=is_selected, 
-                    key=f"day_{day}"
-                ):
-                    selected_days.append(day)
+        for day in days_of_week:
+            is_selected = day in st.session_state.selected_days
+            if st.checkbox(
+                day, 
+                value=is_selected, 
+                key=f"day_{day}"
+            ):
+                selected_days.append(day)
         
         # Submit button with mobile-optimized styling
         st.markdown('<div class="submit-section primary-action">', unsafe_allow_html=True)
@@ -1398,8 +1606,8 @@ try:
         st.markdown(f"""
         <style>
         .result-count-text {{
-            color: #1E3D59 !important;
-            font-size: 1.4rem !important;
+            color: var(--primary-color) !important;
+            font-size: var(--font-size-xxl) !important;
             margin: 0.3rem 0 0.2rem 0 !important;
             text-align: center !important;
             padding: 0.5rem !important;
@@ -1487,6 +1695,11 @@ try:
                     
                     # Update current schedule if changed with loading indicator
                     if selected_schedule != st.session_state.current_schedule:
+                        # Clear modal states when switching schedules to prevent modal bugs
+                        st.session_state.show_program_details = False
+                        st.session_state.show_save_dialog = False
+                        st.session_state.details_program_data = None
+                        st.session_state.popup_program_data = None
                         # Show loading indicator
                         loading_container = st.empty()
                         loading_container.markdown("""
@@ -1518,7 +1731,6 @@ try:
             
             if current_schedule_display == "Family View":
                 # Family View Summary
-                st.markdown("---")
                 
                 # Calculate family statistics
                 total_programs = sum(len(programs) for programs in st.session_state.saved_schedules.values())
@@ -1554,7 +1766,6 @@ try:
                 # Individual schedule conflicts
                 conflicts = detect_schedule_conflicts(current_schedule_display)
                 if conflicts:
-                    st.markdown("---")
                     conflict_text = f"⚠️ {len(conflicts)} scheduling conflicts detected in {current_schedule_display}"
                     st.warning(conflict_text)
                     
@@ -1679,29 +1890,124 @@ try:
         
         # Display results in schedule view format with enhanced empty states
         if len(filtered_df) > 0:
-            # Schedule View Header
+            # View Toggle and Schedule Display
             st.markdown("""
             <style>
             .schedule-view-header {
-                font-size: 1.4rem !important;
+                font-size: var(--font-size-xxl) !important;
                 font-weight: 600 !important;
                 color: var(--primary-color) !important;
                 margin: 1rem 0 0.5rem 0 !important;
                 text-align: center !important;
             }
             .schedule-instruction {
-                font-size: 0.95rem !important;
+                font-size: var(--font-size-base) !important;
                 color: #6c757d !important;
                 margin-bottom: 1rem !important;
                 text-align: center !important;
                 font-style: italic !important;
             }
+            .mobile-program-card {
+                background: white;
+                border: 2px solid var(--border-color);
+                border-radius: 12px;
+                padding: 20px;
+                margin: 15px 0;
+                box-shadow: var(--shadow);
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+            .mobile-program-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            }
+            .mobile-card-header {
+                font-size: var(--font-size-xl);
+                font-weight: 600;
+                color: var(--primary-color);
+                margin-bottom: 8px;
+                line-height: 1.3;
+            }
+            .mobile-card-time {
+                font-size: var(--font-size-base);
+                font-weight: 500;
+                color: var(--text-color);
+                margin-bottom: 12px;
+            }
+            .mobile-card-details {
+                font-size: var(--font-size-base);
+                color: var(--text-color);
+                margin-bottom: 15px;
+                line-height: 1.5;
+            }
+            .mobile-card-buttons {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
+            }
+            .mobile-btn {
+                flex: 1;
+                padding: 12px;
+                border-radius: 8px;
+                font-weight: 600;
+                text-align: center;
+                text-decoration: none;
+                transition: all 0.2s ease;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .view-toggle {
+                text-align: center;
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 10px;
+            }
             </style>
-            <div class="schedule-view-header">📅 Weekly Schedule</div>
-            <div class="schedule-instruction">Click on any program card, then use 💾 Save to add to your child's schedule</div>
             """, unsafe_allow_html=True)
-            # Use standard grid with improved vertical spacing
-            display_schedule_grid(filtered_df)
+            
+            # Initialize view mode in session state - default to Mobile View
+            if 'view_mode' not in st.session_state:
+                st.session_state.view_mode = 'Mobile View'
+            
+            # Streamlined view toggle
+            st.markdown('<div class="view-toggle">', unsafe_allow_html=True)
+            view_mode = st.radio(
+                "View:",
+                options=['📱 Mobile View', '🖥️ Desktop Grid View'],
+                index=0 if st.session_state.view_mode == 'Mobile View' else 1,
+                horizontal=True,
+                key="view_toggle"
+            )
+            
+            # Update session state to handle both old and new naming
+            if view_mode == '🖥️ Desktop Grid View':
+                st.session_state.view_mode = 'Desktop Grid View'
+            else:
+                st.session_state.view_mode = 'Mobile View'
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            if st.session_state.view_mode == 'Mobile View':
+                # Mobile View Implementation
+                display_mobile_schedule_view(filtered_df)
+            else:
+                # Desktop Grid View
+                current_schedule = st.session_state.get('current_schedule', 'Schedule')
+                
+                # Add Programs button for schedule views (not All Programs view)
+                if current_schedule != 'All Programs':
+                    if st.button(f"➕ Add Programs to {current_schedule}", use_container_width=True, type="secondary"):
+                        # Set the save context to remember which schedule we're adding to
+                        st.session_state.save_context_schedule = current_schedule
+                        # Switch to All Programs view temporarily for adding programs
+                        st.session_state.current_schedule = 'All Programs'
+                        st.success(f"💡 Browse programs below and save them to **{current_schedule}'s schedule**")
+                        st.rerun()
+                
+                st.markdown('<div class="schedule-instruction">Click on any program card, then use 💾 Save to add to your child\'s schedule</div>', unsafe_allow_html=True)
+                display_schedule_grid(filtered_df)
         else:
             # Enhanced empty states based on current view
             current_schedule = st.session_state.current_schedule
