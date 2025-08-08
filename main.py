@@ -623,58 +623,57 @@ def save_program_dialog():
     <div class="save-dialog-container">
     """, unsafe_allow_html=True)
     
-    # Two column layout - wider modal with better proportions
-    col1, col2 = st.columns([3, 2])
+    # Single column layout - focused on schedule selection
+    st.markdown("### Select Schedule")
     
-    with col1:
-        st.markdown("### Select Schedule")
+    # Schedule selection
+    existing_schedules = list(st.session_state.saved_schedules.keys())
+    schedule_options = ["-- Create New Schedule --"] + existing_schedules
+    
+    selected_option = st.selectbox(
+        "Choose a schedule:",
+        options=schedule_options,
+        key="modal_schedule_selectbox"
+    )
+    
+    # Schedule name input with dynamic contextual help and smart defaults
+    if selected_option == "-- Create New Schedule --":
+        # Use last used schedule name as default if available
+        default_value = st.session_state.last_schedule_name if st.session_state.last_schedule_name else ""
         
-        # Schedule selection
-        existing_schedules = list(st.session_state.saved_schedules.keys())
-        schedule_options = ["-- Create New Schedule --"] + existing_schedules
-        
-        selected_option = st.selectbox(
-            "Choose a schedule:",
-            options=schedule_options,
-            key="modal_schedule_selectbox"
+        schedule_name = st.text_input(
+            "Schedule Name:",
+            value=default_value,
+            placeholder="Your child's name (e.g., Ami, Mia, Emma)",
+            key="modal_schedule_input",
+            help="💡 Tip: Press Enter to save quickly!"
         )
         
-        # Schedule name input with dynamic contextual help and smart defaults
-        if selected_option == "-- Create New Schedule --":
-            # Use last used schedule name as default if available
-            default_value = st.session_state.last_schedule_name if st.session_state.last_schedule_name else ""
+        # Dynamic contextual help based on user input
+        if schedule_name:
+            schedule_lower = schedule_name.lower().strip()
             
-            schedule_name = st.text_input(
-                "Schedule Name:",
-                value=default_value,
-                placeholder="Your child's name (e.g., Ami, Mia, Emma)",
-                key="modal_schedule_input",
-                help="💡 Tip: Press Enter to save quickly!"
-            )
+            # Check for generic/poor naming patterns
+            generic_patterns = ['schedule', 'test', 'temp', 'new', 'untitled', 'draft']
+            if any(pattern in schedule_lower for pattern in generic_patterns) or schedule_lower.isdigit():
+                st.markdown("""
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; margin-top: 5px;">
+                    <span style="color: #856404;">💡 <strong>Tip:</strong> Consider using your child's name like "Emma" - it's much easier to remember and find later!</span>
+                </div>
+                """, unsafe_allow_html=True)
             
-            # Dynamic contextual help based on user input
-            if schedule_name:
-                schedule_lower = schedule_name.lower().strip()
-                
-                # Check for generic/poor naming patterns
-                generic_patterns = ['schedule', 'test', 'temp', 'new', 'untitled', 'draft']
-                if any(pattern in schedule_lower for pattern in generic_patterns) or schedule_lower.isdigit():
-                    st.markdown("""
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; margin-top: 5px;">
-                        <span style="color: #856404;">💡 <strong>Tip:</strong> Consider using your child's name like "Emma" - it's much easier to remember and find later!</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                # Check for numbers/dates
-                elif any(char.isdigit() for char in schedule_name) and not any(char.isalpha() for char in schedule_name):
-                    st.markdown("""
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; margin-top: 5px;">
-                        <span style="color: #856404;">💡 <strong>Suggestion:</strong> Try your child's name instead - much easier to find later!</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
+            # Check for numbers/dates
+            elif any(char.isdigit() for char in schedule_name) and not any(char.isalpha() for char in schedule_name):
+                st.markdown("""
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; margin-top: 5px;">
+                    <span style="color: #856404;">💡 <strong>Suggestion:</strong> Try your child's name instead - much easier to find later!</span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Only show validation messages for new schedules, not existing ones
+            elif schedule_name not in st.session_state.schedules:
                 # Check for good naming (looks like a name)
-                elif (len(schedule_name) >= 2 and 
+                if (len(schedule_name) >= 2 and 
                       schedule_name[0].isupper() and 
                       schedule_name.replace(' ', '').replace('-', '').isalpha() and
                       len(schedule_name.split()) <= 3):
@@ -694,29 +693,9 @@ def save_program_dialog():
                         <span style="color: #0c5460;">👍 <strong>Good!</strong> Including your child's name makes it easy to find.</span>
                     </div>
                     """, unsafe_allow_html=True)
-        else:
-            schedule_name = selected_option
-            st.info(f"Adding to: **{schedule_name}**")
-    
-    with col2:
-        st.markdown("### Program Info")
-        category = program.get('Interest Category', 'N/A')
-        icon = get_category_icon(category)
-        
-        # More compact display
-        st.markdown(f"**{icon} {program_name}**")
-        st.markdown(f"📍 {program.get('Provider Name', 'N/A')}")
-        st.markdown(f"📅 {program.get('Day of the week', 'N/A')} | ⏰ {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}")
-        
-        # Additional info on same line when possible
-        extra_info = []
-        if program.get('Distance', 0) > 0:
-            extra_info.append(f"🚗 {program.get('Distance', 0):.1f} miles")
-        if program.get('Cost', 0) > 0:
-            extra_info.append(f"💰 ${program.get('Cost', 0):.2f}")
-        
-        if extra_info:
-            st.markdown(" | ".join(extra_info))
+    else:
+        schedule_name = selected_option
+        st.info(f"Adding to: **{schedule_name}**")
     
     # Show success message if available
     if st.session_state.save_success_message:
@@ -1719,7 +1698,7 @@ try:
             }
             </style>
             <div class="schedule-view-header">📅 Weekly Schedule</div>
-            <div class="schedule-instruction">Click 💾 Save to add programs to your schedule</div>
+            <div class="schedule-instruction">Click on any program card, then use 💾 Save to add to your child's schedule</div>
             """, unsafe_allow_html=True)
             # Use standard grid with improved vertical spacing
             display_schedule_grid(filtered_df)
