@@ -200,3 +200,166 @@ def load_and_process_data(file_path):
 def get_unique_values(df, column):
     """Get sorted unique values from a column."""
     return sorted(df[column].unique())
+
+def get_category_icon(category):
+    """Return appropriate emoji icon for program category"""
+    if not category or pd.isna(category):
+        return "📚"
+    
+    category_lower = str(category).lower()
+    
+    # Enhanced category mapping with specific icons requested
+    icon_map = {
+        # Sports & Physical Activities
+        'sports': '⚽',
+        'soccer': '⚽', 
+        'football': '🏈',
+        'basketball': '🏀',
+        'tennis': '🎾',
+        'baseball': '⚾',
+        'volleyball': '🏐',
+        'track': '🏃',
+        'running': '🏃',
+        'swimming': '🏊',
+        'swim': '🏊',
+        'pool': '🏊',
+        'water': '🏊',
+        'gymnastics': '🤸',
+        'gym': '🤸',
+        'tumbling': '🤸',
+        'martial arts': '🥋',
+        'karate': '🥋',
+        'taekwondo': '🥋',
+        'judo': '🥋',
+        'boxing': '🥊',
+        
+        # Creative Arts
+        'art': '🎨',
+        'arts': '🎨',
+        'painting': '🎨',
+        'drawing': '🎨',
+        'craft': '🎨',
+        'pottery': '🏺',
+        'music': '🎵',
+        'piano': '🎹',
+        'guitar': '🎸',
+        'violin': '🎻',
+        'drum': '🥁',
+        'band': '🎺',
+        'choir': '🎤',
+        'singing': '🎤',
+        'dance': '💃',
+        'ballet': '🩰',
+        'theater': '🎭',
+        'drama': '🎭',
+        'acting': '🎭',
+        
+        # STEM & Technology
+        'stem': '🔬',
+        'science': '🔬',
+        'chemistry': '⚗️',
+        'biology': '🧬',
+        'physics': '⚛️',
+        'coding': '💻',
+        'programming': '💻',
+        'computer': '💻',
+        'robotics': '🤖',
+        'engineering': '🔧',
+        'math': '🔢',
+        'mathematics': '🔢',
+        
+        # Academic & Learning
+        'tutoring': '✏️',
+        'homework': '✏️',
+        'academic': '📝',
+        'reading': '📖',
+        'writing': '✍️',
+        'english': '📖',
+        'language': '🗣️',
+        'spanish': '🇪🇸',
+        'french': '🇫🇷',
+        'history': '📜',
+        'geography': '🌍',
+        
+        # Games & Strategy
+        'chess': '♟️',
+        'board games': '🎲',
+        'cards': '🃏',
+        'puzzle': '🧩',
+        
+        # Life Skills & Other
+        'cooking': '👨‍🍳',
+        'baking': '🧁',
+        'gardening': '🌱',
+        'nature': '🌿',
+        'outdoor': '🏕️',
+        'adventure': '🧗',
+        'leadership': '👥',
+        'social': '👥',
+        'community': '🏘️'
+    }
+    
+    # Check for matches (prioritize more specific matches)
+    matches = []
+    for key, icon in icon_map.items():
+        if key in category_lower:
+            matches.append((len(key), icon))  # Length for specificity priority
+    
+    if matches:
+        # Return the most specific match (longest string match)
+        return max(matches, key=lambda x: x[0])[1]
+    
+    # Default icon for unknown categories
+    return "📚"
+
+def get_distance_badge_info(distance):
+    """Return distance badge styling and text based on distance"""
+    if not distance or pd.isna(distance) or distance <= 0:
+        return "", ""
+    
+    distance = float(distance)
+    
+    if distance < 1.0:
+        return "close", f"{distance:.1f}mi"
+    elif distance < 2.0:
+        return "medium", f"{distance:.1f}mi" 
+    else:
+        return "far", f"{distance:.1f}mi"
+
+def get_availability_status(program):
+    """Return availability status and color based on program data"""
+    # Check for availability indicators in various columns
+    availability_columns = ['Enrollment Status', 'Availability', 'Status', 'Spots']
+    
+    for col in availability_columns:
+        if col in program and not pd.isna(program[col]):
+            status_text = str(program[col]).lower()
+            
+            # Full/Closed indicators
+            if any(word in status_text for word in ['full', 'closed', 'no spots', 'capacity']):
+                return "Full", "#dc3545"  # Red
+            
+            # Waitlist indicators  
+            elif any(word in status_text for word in ['waitlist', 'waiting', 'wait list']):
+                return "Waitlist", "#fd7e14"  # Orange
+            
+            # Open/Available indicators
+            elif any(word in status_text for word in ['open', 'available', 'spots', 'accepting']):
+                return "Spots Open", "#28a745"  # Green
+    
+    # Check for numerical capacity if available
+    if 'Max Capacity' in program and 'Current Enrollment' in program:
+        try:
+            max_cap = float(program['Max Capacity'])
+            current = float(program['Current Enrollment'])
+            if current >= max_cap:
+                return "Full", "#dc3545"
+            elif current >= max_cap * 0.9:  # 90% full
+                return "Almost Full", "#ffc107"  # Yellow
+            else:
+                return "Spots Open", "#28a745"
+        except (ValueError, TypeError):
+            pass
+    
+    # Default - assume spots are open if no info available
+    return "Spots Open", "#28a745"
