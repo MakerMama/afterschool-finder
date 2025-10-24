@@ -1391,25 +1391,8 @@ st.markdown("""
 # App header with subtitle
 st.markdown("""
 <div style='text-align: center; margin-bottom: 2rem;'>
-    <h1 class='main-header' style='font-size: 2.2rem; color: var(--primary-color) !important; line-height: 1.2; font-weight: 600; margin-bottom: 0.75rem;'>📚 After-School Program Finder</h1>
-    <div style='
-        display: inline-block;
-        background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
-        padding: 10px 24px;
-        border-radius: 8px;
-        border: 1px solid #E2E8F0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    '>
-        <p style='
-            font-size: 0.9rem;
-            color: #475569;
-            margin: 0;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-        '>
-            🏫 Programs for Ages 3-5 (Grades 3K-K) in <strong style="color: var(--primary-color);">PS 38, Brooklyn</strong>
-        </p>
-    </div>
+    <h1 class='main-header' style='font-size: 2.2rem; color: var(--primary-color) !important; line-height: 1.2; font-weight: 600; margin-bottom: 0.5rem;'>📚 After-School Program Finder</h1>
+    <p style='font-size: 0.95rem; color: #64748B; margin: 0;'>Programs for Ages 3-5 (Grades 3K-K) in <strong style="color: #475569;">PS 38, Brooklyn</strong></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1464,22 +1447,21 @@ try:
             )
 
         # Program Location filter as checkboxes
-        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📍 Program Location</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.5rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📍 Program Location</div>', unsafe_allow_html=True)
+        st.caption("ℹ️ On-site: School-based programs with pickup from school • Off-site: External venues (separate transportation needed)")
 
         program_type_col1, program_type_col2 = st.columns(2)
         with program_type_col1:
             on_site_checked = st.checkbox(
                 "On-site (School-based)",
                 value='On-site' in st.session_state.program_types,
-                key="on_site_checkbox",
-                help="Programs held at schools with pickup from school"
+                key="on_site_checkbox"
             )
         with program_type_col2:
             off_site_checked = st.checkbox(
                 "Off-site (External locations)",
                 value='Off-site' in st.session_state.program_types,
-                key="off_site_checkbox",
-                help="Programs at external venues (separate transportation needed)"
+                key="off_site_checkbox"
             )
 
         # Build program_types list based on checkboxes
