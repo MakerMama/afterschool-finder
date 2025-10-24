@@ -1447,8 +1447,12 @@ try:
             )
 
         # Program Location filter as checkboxes
-        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.5rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📍 Program Location</div>', unsafe_allow_html=True)
-        st.caption("ℹ️ On-site: School-based programs with pickup from school • Off-site: External venues (separate transportation needed)")
+        st.markdown('''
+        <div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">
+            📍 Program Location
+            <span style="display: inline-block; margin-left: 6px; color: #94a3b8; font-size: 0.9rem; cursor: help;" title="On-site: School-based programs with pickup from school &#10;Off-site: External venues (separate transportation needed)">ⓘ</span>
+        </div>
+        ''', unsafe_allow_html=True)
 
         program_type_col1, program_type_col2 = st.columns(2)
         with program_type_col1:
