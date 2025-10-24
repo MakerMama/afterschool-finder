@@ -104,11 +104,11 @@ def display_program_card(program):
         # Determine program type badge and border color
         program_type = program.get('Program Type', '')
         if program_type == 'On-site':
-            border_color = '#2E5D79'  # Blue for on-site
-            type_badge = '<span style="background: #2E5D79; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">On-site</span>'
+            border_color = '#0891B2'  # Cyan for on-site
+            type_badge = '<span style="background: #0891B2; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">On-site</span>'
         elif program_type == 'Off-site':
-            border_color = '#6B46C1'  # Purple for off-site
-            type_badge = '<span style="background: #6B46C1; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">Off-site</span>'
+            border_color = '#F59E0B'  # Amber for off-site
+            type_badge = '<span style="background: #F59E0B; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">Off-site</span>'
         else:
             border_color = '#E2E8F0'  # Default gray
             type_badge = ''
@@ -164,7 +164,7 @@ def display_program_card(program):
         # Show Program Type badge
         program_type = program.get('Program Type', '')
         if program_type and not pd.isna(program_type):
-            type_color = '#2E5D79' if program_type == 'On-site' else '#6B46C1'
+            type_color = '#0891B2' if program_type == 'On-site' else '#F59E0B'
             html += f"<p class='program-card-secondary'><span style='background: {type_color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;'>{program_type}</span>"
 
             # Show Grade Level for on-site programs
@@ -1127,9 +1127,9 @@ def display_schedule_grid(filtered_df):
                         # Get program type badge
                         program_type = program.get('Program Type', '')
                         if program_type == 'On-site':
-                            type_badge = f'<span style="font-size: 0.7rem; background: #2E5D79; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">On-site</span>'
+                            type_badge = f'<span style="font-size: 0.7rem; background: #0891B2; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">On-site</span>'
                         elif program_type == 'Off-site':
-                            type_badge = f'<span style="font-size: 0.7rem; background: #6B46C1; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">Off-site</span>'
+                            type_badge = f'<span style="font-size: 0.7rem; background: #F59E0B; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">Off-site</span>'
                         else:
                             type_badge = ''
 
@@ -1391,8 +1391,25 @@ st.markdown("""
 # App header with subtitle
 st.markdown("""
 <div style='text-align: center; margin-bottom: 2rem;'>
-    <h1 class='main-header' style='font-size: 2.2rem; color: var(--primary-color) !important; line-height: 1.2; font-weight: 600; margin-bottom: 0.5rem;'>📚 After-School Program Finder</h1>
-    <p style='font-size: 0.95rem; color: #64748B; margin: 0;'>Programs for Ages 3-5 (Grades 3K-K) in Brooklyn</p>
+    <h1 class='main-header' style='font-size: 2.2rem; color: var(--primary-color) !important; line-height: 1.2; font-weight: 600; margin-bottom: 0.75rem;'>📚 After-School Program Finder</h1>
+    <div style='
+        display: inline-block;
+        background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+        padding: 10px 24px;
+        border-radius: 8px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    '>
+        <p style='
+            font-size: 0.9rem;
+            color: #475569;
+            margin: 0;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        '>
+            🏫 Programs for Ages 3-5 (Grades 3K-K) in <strong style="color: var(--primary-color);">PS 38, Brooklyn</strong>
+        </p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
