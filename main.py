@@ -101,22 +101,29 @@ button {
 def display_program_card(program):
     """Display a program as a card in list view"""
     with st.container():
-        # Determine program type icon and border color
+        # Determine program type badge and border color
         program_type = program.get('Program Type', '')
         if program_type == 'On-site':
-            type_icon = '🏢'
             border_color = '#2E5D79'  # Blue for on-site
+            type_badge = '<span style="background: #2E5D79; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">On-site</span>'
         elif program_type == 'Off-site':
-            type_icon = '🎒'
             border_color = '#6B46C1'  # Purple for off-site
+            type_badge = '<span style="background: #6B46C1; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">Off-site</span>'
         else:
-            type_icon = ''
             border_color = '#E2E8F0'  # Default gray
+            type_badge = ''
+
+        # Get enrollment status badge
+        availability_status, availability_color = get_availability_status(program)
+        enrollment_badge = f'<span style="background: {availability_color}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{availability_status}</span>'
 
         html = f"""
         <div class='program-card-container' style='border-left: 4px solid {border_color};'>
-            <h3 class='program-card-title'>{program.get('Program Name', 'N/A')} {type_icon}</h3>
+            <h3 class='program-card-title'>{program.get('Program Name', 'N/A')}</h3>
             <p class='program-card-provider'>{program.get('Provider Name', 'N/A')}</p>
+            <div style='margin: 8px 0;'>
+                {type_badge}{enrollment_badge}
+            </div>
             <div class='program-card-info-bar'>
                 <p class='program-card-text'><span style='margin-right: 8px;'>⏰</span>{program.get('Day of the week', 'N/A')} • {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>"""
         
@@ -928,14 +935,14 @@ def display_mobile_schedule_view(filtered_df):
             distance_class, distance_text = get_distance_badge_info(program.get('Distance', 0))
             availability_status, availability_color = get_availability_status(program)
 
-            # Get program type icon
+            # Get program type badge text (for mobile display)
             program_type = program.get('Program Type', '')
             if program_type == 'On-site':
-                type_icon = '🏢'
+                type_badge_text = 'On-site'
             elif program_type == 'Off-site':
-                type_icon = '🎒'
+                type_badge_text = 'Off-site'
             else:
-                type_icon = ''
+                type_badge_text = ''
 
             # Check if program is already saved to any schedule
             program_key = f"{program_name}|{provider_name}|{program.get('Day of the week', '')}|{start_time}"
@@ -975,14 +982,15 @@ def display_mobile_schedule_view(filtered_df):
             distance_display = f' • 🚗 {distance_text}' if distance_text else ''
             
             # Make entire card clickable for details - clean multiline format
-            card_content = f"""{category_icon} {program_name} {type_icon}
+            card_content = f"""{category_icon} {program_name}
 ⏰ {start_time} - {end_time}
 📍 {provider_name}"""
-            
-            # Add status if available, removing HTML formatting for button text
-            if status_display:
-                status_text = status_display.replace('<span style="font-size: 0.8rem; background: #38A169; color: white; padding: 4px 10px; border-radius: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);">', '').replace('</span>', '')
-                card_content += f"\n✅ {status_text}"
+
+            # Add program location and enrollment status badges
+            if type_badge_text:
+                card_content += f"\n📍 {type_badge_text}"
+            if availability_status:
+                card_content += f" • ✅ {availability_status}"
             
             if st.button(card_content, key=f"mobile_card_{idx}", use_container_width=True, help="Tap to view full program details"):
                 st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
@@ -1116,14 +1124,14 @@ def display_schedule_grid(filtered_df):
                         distance_class, distance_text = get_distance_badge_info(distance)
                         availability_status, availability_color = get_availability_status(program)
 
-                        # Get program type icon
+                        # Get program type badge
                         program_type = program.get('Program Type', '')
                         if program_type == 'On-site':
-                            type_icon = '🏢'
+                            type_badge = f'<span style="font-size: 0.7rem; background: #2E5D79; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">On-site</span>'
                         elif program_type == 'Off-site':
-                            type_icon = '🎒'
+                            type_badge = f'<span style="font-size: 0.7rem; background: #6B46C1; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">Off-site</span>'
                         else:
-                            type_icon = ''
+                            type_badge = ''
 
                         # Check if program is saved
                         is_saved = False
@@ -1137,14 +1145,17 @@ def display_schedule_grid(filtered_df):
                                     is_saved = True
                                     break
                         
-                        # Create visual badges for distance and availability
+                        # Create visual badges for program type, enrollment status, and distance
                         badges_html = ""
-                        if distance_text:
-                            # Use warm terra cotta pill style for distance badges
-                            badges_html += f'<span style="font-size: 0.7rem; background: var(--distance-color); color: white; padding: 4px 10px; border-radius: 15px; margin-left: 4px; font-weight: 500; box-shadow: 0 1px 3px rgba(221, 107, 32, 0.3);">🚶‍♀️ {distance_text}</span>'
-                        
+                        # Program location badge first
+                        if type_badge:
+                            badges_html += type_badge
+                        # Enrollment status badge second
                         if availability_status:
-                            badges_html += f'<span style="font-size: 0.7rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; margin-left: 4px; font-weight: 500; box-shadow: 0 1px 3px rgba(56, 161, 105, 0.3);">{availability_status}</span>'
+                            badges_html += f'<span style="font-size: 0.7rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">{availability_status}</span>'
+                        # Distance badge last
+                        if distance_text:
+                            badges_html += f'<span style="font-size: 0.7rem; background: var(--distance-color); color: white; padding: 4px 10px; border-radius: 15px; font-weight: 500;">🚶‍♀️ {distance_text}</span>'
                         
                         # Determine if program is saved for styling
                         saved_class = "saved" if is_saved else ""
@@ -1187,7 +1198,7 @@ def display_schedule_grid(filtered_df):
                                 if schedule_name:
                                     child_label = f"👧 {schedule_name}: "
 
-                            button_text = f"{child_label}{icon} {display_name} {type_icon}" + (" 💖" if in_schedule else "")
+                            button_text = f"{child_label}{icon} {display_name}" + (" 💖" if in_schedule else "")
                             
                             if st.button(button_text, 
                                        key=button_key,
@@ -1377,8 +1388,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# App header
-st.markdown("<h1 class='main-header' style='font-size: 2.2rem; color: var(--primary-color) !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; font-weight: 600;'>📚 After-School Program Finder</h1>", unsafe_allow_html=True)
+# App header with subtitle
+st.markdown("""
+<div style='text-align: center; margin-bottom: 2rem;'>
+    <h1 class='main-header' style='font-size: 2.2rem; color: var(--primary-color) !important; line-height: 1.2; font-weight: 600; margin-bottom: 0.5rem;'>📚 After-School Program Finder</h1>
+    <p style='font-size: 0.95rem; color: #64748B; margin: 0;'>Programs for Ages 3-5 (Grades 3K-K) in Brooklyn</p>
+</div>
+""", unsafe_allow_html=True)
 
 # Load data
 try:
@@ -1408,18 +1424,6 @@ try:
 
     # Create form with improved organization
     with st.form(key='program_filter_form'):
-        # Friendly welcome message
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; border-left: 4px solid var(--primary-color);">
-            <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary-color); margin-bottom: 4px;">
-                🌟 Find Perfect Programs for Your Little Learners
-            </div>
-            <div style="font-size: 0.9rem; color: #475569;">
-                Curated programs for ages 3-5 (grades 3K-K) in Brooklyn
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
         # Child Information Section
         st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">👶 Child Information</div>', unsafe_allow_html=True)
 
@@ -1442,22 +1446,23 @@ try:
                 help="Select grade level for on-site school programs (optional)"
             )
 
-        # Program type filter as checkboxes
-        st.markdown('<div style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-color); margin: 1rem 0 0.5rem 0;">Program Location Type</div>', unsafe_allow_html=True)
-        st.markdown('<div style="font-size: 0.85rem; color: #64748B; margin-bottom: 0.5rem;">Select which types of programs to include</div>', unsafe_allow_html=True)
+        # Program Location filter as checkboxes
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📍 Program Location</div>', unsafe_allow_html=True)
 
         program_type_col1, program_type_col2 = st.columns(2)
         with program_type_col1:
             on_site_checked = st.checkbox(
-                "🏢 On-site (School-based)",
+                "On-site (School-based)",
                 value='On-site' in st.session_state.program_types,
-                key="on_site_checkbox"
+                key="on_site_checkbox",
+                help="Programs held at schools with pickup from school"
             )
         with program_type_col2:
             off_site_checked = st.checkbox(
-                "🎒 Off-site (External locations)",
+                "Off-site (External locations)",
                 value='Off-site' in st.session_state.program_types,
-                key="off_site_checkbox"
+                key="off_site_checkbox",
+                help="Programs at external venues (separate transportation needed)"
             )
 
         # Build program_types list based on checkboxes
