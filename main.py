@@ -1455,7 +1455,7 @@ try:
                 "On-site (School-based)",
                 value='On-site' in st.session_state.program_types,
                 key="on_site_checkbox",
-                help="On-site: School-based programs with pickup from school • Off-site: External venues (separate transportation needed)"
+                help="On-site: School-based programs by World Explorers • Off-site: External venues"
             )
         with program_type_col2:
             off_site_checked = st.checkbox(
