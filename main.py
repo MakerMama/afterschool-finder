@@ -1484,16 +1484,16 @@ try:
             help="Select one or more categories that match your child's interests"
         )
         
-        # Location & Distance Section
-        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📍 Location & Distance</div>', unsafe_allow_html=True)
-        
+        # Home Location Section
+        st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🏠 Home Location</div>', unsafe_allow_html=True)
+
         col1, col2 = st.columns([3, 1])
         with col1:
             user_address = st.text_input(
-                "Your Address (Optional)",
+                "Home Address (Optional)",
                 value=st.session_state.user_address,
                 placeholder="123 Main St, Brooklyn, NY",
-                help="Enter your address to see distances and get a personalized map view"
+                help="Enter your home address to see distances and get a personalized map view"
             )
         with col2:
             max_distance = st.number_input(
