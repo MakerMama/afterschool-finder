@@ -101,9 +101,21 @@ button {
 def display_program_card(program):
     """Display a program as a card in list view"""
     with st.container():
+        # Determine program type icon and border color
+        program_type = program.get('Program Type', '')
+        if program_type == 'On-site':
+            type_icon = '🏢'
+            border_color = '#2E5D79'  # Blue for on-site
+        elif program_type == 'Off-site':
+            type_icon = '🎒'
+            border_color = '#6B46C1'  # Purple for off-site
+        else:
+            type_icon = ''
+            border_color = '#E2E8F0'  # Default gray
+
         html = f"""
-        <div class='program-card-container'>
-            <h3 class='program-card-title'>{program.get('Program Name', 'N/A')}</h3>
+        <div class='program-card-container' style='border-left: 4px solid {border_color};'>
+            <h3 class='program-card-title'>{program.get('Program Name', 'N/A')} {type_icon}</h3>
             <p class='program-card-provider'>{program.get('Provider Name', 'N/A')}</p>
             <div class='program-card-info-bar'>
                 <p class='program-card-text'><span style='margin-right: 8px;'>⏰</span>{program.get('Day of the week', 'N/A')} • {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>"""
@@ -915,7 +927,16 @@ def display_mobile_schedule_view(filtered_df):
             category_icon = get_category_icon(category)
             distance_class, distance_text = get_distance_badge_info(program.get('Distance', 0))
             availability_status, availability_color = get_availability_status(program)
-            
+
+            # Get program type icon
+            program_type = program.get('Program Type', '')
+            if program_type == 'On-site':
+                type_icon = '🏢'
+            elif program_type == 'Off-site':
+                type_icon = '🎒'
+            else:
+                type_icon = ''
+
             # Check if program is already saved to any schedule
             program_key = f"{program_name}|{provider_name}|{program.get('Day of the week', '')}|{start_time}"
             is_saved = False
@@ -954,7 +975,7 @@ def display_mobile_schedule_view(filtered_df):
             distance_display = f' • 🚗 {distance_text}' if distance_text else ''
             
             # Make entire card clickable for details - clean multiline format
-            card_content = f"""{category_icon} {program_name}
+            card_content = f"""{category_icon} {program_name} {type_icon}
 ⏰ {start_time} - {end_time}
 📍 {provider_name}"""
             
@@ -1091,10 +1112,19 @@ def display_schedule_grid(filtered_df):
                         distance = program.get('Distance', 0)
                         
                         # Get enhanced visual information using utils functions
-                        icon = get_category_icon(category) 
+                        icon = get_category_icon(category)
                         distance_class, distance_text = get_distance_badge_info(distance)
                         availability_status, availability_color = get_availability_status(program)
-                        
+
+                        # Get program type icon
+                        program_type = program.get('Program Type', '')
+                        if program_type == 'On-site':
+                            type_icon = '🏢'
+                        elif program_type == 'Off-site':
+                            type_icon = '🎒'
+                        else:
+                            type_icon = ''
+
                         # Check if program is saved
                         is_saved = False
                         current_schedule = st.session_state.current_schedule
@@ -1156,8 +1186,8 @@ def display_schedule_grid(filtered_df):
                                 schedule_name = program.get('Schedule_Name', '')
                                 if schedule_name:
                                     child_label = f"👧 {schedule_name}: "
-                            
-                            button_text = f"{child_label}{icon} {display_name}" + (" 💖" if in_schedule else "")
+
+                            button_text = f"{child_label}{icon} {display_name} {type_icon}" + (" 💖" if in_schedule else "")
                             
                             if st.button(button_text, 
                                        key=button_key,
@@ -1185,9 +1215,9 @@ if 'selected_interests' not in st.session_state:
 if 'child_age' not in st.session_state:
     st.session_state.child_age = 5
 if 'grade_level' not in st.session_state:
-    st.session_state.grade_level = 'Not sure'
-if 'program_type' not in st.session_state:
-    st.session_state.program_type = 'Both'
+    st.session_state.grade_level = 'K'
+if 'program_types' not in st.session_state:
+    st.session_state.program_types = ['On-site', 'Off-site']
 if 'start_time' not in st.session_state:
     st.session_state.start_time = "03:00 PM"
 if 'end_time' not in st.session_state:
@@ -1378,36 +1408,64 @@ try:
 
     # Create form with improved organization
     with st.form(key='program_filter_form'):
+        # Friendly welcome message
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; border-left: 4px solid var(--primary-color);">
+            <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary-color); margin-bottom: 4px;">
+                🌟 Find Perfect Programs for Your Little Learners
+            </div>
+            <div style="font-size: 0.9rem; color: #475569;">
+                Curated programs for ages 3-5 (grades 3K-K) in Brooklyn
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         # Child Information Section
         st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">👶 Child Information</div>', unsafe_allow_html=True)
 
-        col1, col2, col3 = st.columns([1, 1, 1])
+        col1, col2 = st.columns([1, 1])
         with col1:
             child_age = st.number_input(
                 "Child's Age",
-                min_value=0,
-                max_value=18,
+                min_value=3,
+                max_value=5,
                 value=st.session_state.child_age,
-                help="Enter your child's age to find age-appropriate programs"
+                help="Programs available for ages 3-5"
             )
         with col2:
-            # Grade level options for on-site programs
-            grade_options = ['Not sure', '3K', 'UPK', 'K', '1st', '2nd', '3rd', '4th', '5th']
+            # Grade level options for on-site programs (constrained to 3K-K)
+            grade_options = ['Not sure', '3K', 'UPK', 'K']
             grade_level = st.selectbox(
                 "Child's Grade Level",
                 options=grade_options,
-                index=grade_options.index(st.session_state.grade_level) if st.session_state.grade_level in grade_options else 0,
+                index=grade_options.index(st.session_state.grade_level) if st.session_state.grade_level in grade_options else 3,
                 help="Select grade level for on-site school programs (optional)"
             )
-        with col3:
-            # Program type filter
-            program_type_options = ['Both', 'On-site', 'Off-site']
-            program_type = st.selectbox(
-                "Program Type",
-                options=program_type_options,
-                index=program_type_options.index(st.session_state.program_type) if st.session_state.program_type in program_type_options else 0,
-                help="On-site: School-based programs | Off-site: External locations"
+
+        # Program type filter as checkboxes
+        st.markdown('<div style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-color); margin: 1rem 0 0.5rem 0;">Program Location Type</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 0.85rem; color: #64748B; margin-bottom: 0.5rem;">Select which types of programs to include</div>', unsafe_allow_html=True)
+
+        program_type_col1, program_type_col2 = st.columns(2)
+        with program_type_col1:
+            on_site_checked = st.checkbox(
+                "🏢 On-site (School-based)",
+                value='On-site' in st.session_state.program_types,
+                key="on_site_checkbox"
             )
+        with program_type_col2:
+            off_site_checked = st.checkbox(
+                "🎒 Off-site (External locations)",
+                value='Off-site' in st.session_state.program_types,
+                key="off_site_checkbox"
+            )
+
+        # Build program_types list based on checkboxes
+        program_types = []
+        if on_site_checked:
+            program_types.append('On-site')
+        if off_site_checked:
+            program_types.append('Off-site')
 
         # Program Interests
         st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🎨 Program Interests</div>', unsafe_allow_html=True)
@@ -1484,7 +1542,7 @@ try:
             # Update session state
             st.session_state.child_age = child_age
             st.session_state.grade_level = grade_level
-            st.session_state.program_type = program_type
+            st.session_state.program_types = program_types
             st.session_state.selected_interests = selected_interests
             st.session_state.selected_days = selected_days
             st.session_state.start_time = start_time
@@ -1557,7 +1615,7 @@ try:
             filters = {
                 'child_age': child_age,
                 'grade_level': grade_level,
-                'program_type': program_type,
+                'program_types': program_types,
                 'selected_interests': selected_interests,
                 'selected_days': selected_days,
                 'start_time': start_time,

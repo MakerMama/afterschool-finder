@@ -134,9 +134,12 @@ def filter_programs(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
         filtered_df = filtered_df[category_mask]
 
     # Program Type filter (On-site/Off-site)
-    if filters.get('program_type') and filters['program_type'] != 'Both':
-        if 'Program Type' in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df['Program Type'] == filters['program_type']]
+    if filters.get('program_types'):
+        program_types = filters['program_types']
+        # Only filter if at least one type is selected and not both
+        if len(program_types) > 0 and len(program_types) < 2:
+            if 'Program Type' in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df['Program Type'].isin(program_types)]
 
     # Grade level filter for on-site programs
     if filters.get('grade_level') and filters['grade_level'] != 'Not sure':
