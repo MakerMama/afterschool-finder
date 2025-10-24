@@ -112,9 +112,49 @@ def filter_programs(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
             )
         ]
 
-    # Interest categories filter
+    # Interest categories filter - support comma-separated categories
     if filters.get('selected_interests'):
-        filtered_df = filtered_df[filtered_df['Interest Category'].isin(filters['selected_interests'])]
+        selected_categories = filters['selected_interests']
+
+        # Create a mask for programs that match any selected category
+        def matches_category(cat_value):
+            if pd.isna(cat_value):
+                return False
+
+            # Split the stored category into individual categories
+            stored_categories = [c.strip().lower() for c in str(cat_value).split(',')]
+
+            # Check if any selected category matches any stored category
+            for selected_cat in selected_categories:
+                if selected_cat.strip().lower() in stored_categories:
+                    return True
+            return False
+
+        category_mask = filtered_df['Interest Category'].apply(matches_category)
+        filtered_df = filtered_df[category_mask]
+
+    # Program Type filter (On-site/Off-site)
+    if filters.get('program_type') and filters['program_type'] != 'Both':
+        if 'Program Type' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['Program Type'] == filters['program_type']]
+
+    # Grade level filter for on-site programs
+    if filters.get('grade_level') and filters['grade_level'] != 'Not sure':
+        selected_grade = filters['grade_level']
+
+        # Filter by grade level - only for on-site programs with Grade_Level data
+        if 'Grade_Level' in filtered_df.columns:
+            def matches_grade(row):
+                # If program has no grade level (off-site programs), include based on age only
+                if pd.isna(row.get('Grade_Level')) or not str(row.get('Grade_Level')).strip():
+                    return True
+
+                # For on-site programs with grade levels, check if selected grade is in the list
+                grade_levels = str(row['Grade_Level']).split('|')
+                grade_levels_clean = [g.strip() for g in grade_levels]
+                return selected_grade in grade_levels_clean
+
+            filtered_df = filtered_df[filtered_df.apply(matches_grade, axis=1)]
 
     # Distance filter
     if filters.get('user_address') and filters.get('max_distance'):
@@ -198,15 +238,27 @@ def load_and_process_data(file_path):
         raise Exception(f"Error processing CSV file: {str(e)}")
 
 def get_unique_values(df, column):
-    """Get sorted unique values from a column."""
-    return sorted(df[column].unique())
+    """Get sorted unique values from a column, splitting comma-separated values for Interest Category."""
+    if column == 'Interest Category':
+        # Handle comma-separated categories
+        all_categories = set()
+        for value in df[column].dropna().unique():
+            # Split by comma and clean up whitespace
+            categories = [cat.strip() for cat in str(value).split(',')]
+            all_categories.update(categories)
+        return sorted(list(all_categories))
+    else:
+        return sorted(df[column].unique())
 
 def get_category_icon(category):
     """Return appropriate emoji icon for program category"""
     if not category or pd.isna(category):
         return "📚"
     
-    category_lower = str(category).lower()
+    # For comma-separated categories, use the first category for icon selection
+    first_category = str(category).split(',')[0].strip()
+    
+    category_lower = first_category.lower()
     
     # Enhanced category mapping with specific icons requested
     icon_map = {
@@ -345,7 +397,7 @@ def get_availability_status(program):
             
             # Open/Available indicators
             elif any(word in status_text for word in ['open', 'available', 'spots', 'accepting']):
-                return "Spots Open", "#28a745"  # Green
+                return "Spots Open", "#38A169"  # Natural green
     
     # Check for numerical capacity if available
     if 'Max Capacity' in program and 'Current Enrollment' in program:

@@ -141,16 +141,30 @@ def display_program_card(program):
         min_age_safe = int(float(min_age_val)) if min_age_val is not None and not pd.isna(min_age_val) else 0
         max_age_safe = int(float(max_age_val)) if max_age_val is not None and not pd.isna(max_age_val) else 0
         html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>👶</span><strong>Ages:</strong> {min_age_safe} - {max_age_safe}</p>"
+
+        # Show Program Type badge
+        program_type = program.get('Program Type', '')
+        if program_type and not pd.isna(program_type):
+            type_color = '#2E5D79' if program_type == 'On-site' else '#6B46C1'
+            html += f"<p class='program-card-secondary'><span style='background: {type_color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;'>{program_type}</span>"
+
+            # Show Grade Level for on-site programs
+            if program_type == 'On-site':
+                grade_level = program.get('Grade_Level', '')
+                if grade_level and not pd.isna(grade_level) and str(grade_level).strip():
+                    html += f"<strong>Grades:</strong> {grade_level}"
+            html += "</p>"
+
         html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🎯</span><strong>Category:</strong> {program.get('Interest Category', 'N/A')}</p>"
         html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>📍</span><strong>Address:</strong> {program.get('Address', 'N/A')}</p>"
-        
+
         # Contact & additional info
         if 'Website' in program and not pd.isna(program['Website']):
             html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🌐</span><a href='{program['Website']}' target='_blank' class='program-card-link'>Website</a></p>"
         if 'Contact Phone' in program and not pd.isna(program['Contact Phone']):
             html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>📞</span><strong>Phone:</strong> {program['Contact Phone']}</p>"
         if 'School Pickup From' in program and isinstance(program['School Pickup From'], str) and program['School Pickup From'].strip():
-            html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🚌</span><strong>School pickup:</strong> {program['School Pickup From']}</p>"
+            html += f"<p class='program-card-secondary'><span style='margin-right: 6px;'>🚌</span><strong>School Pickup:</strong> {program['School Pickup From']}</p>"
         html += "</div>"
         st.markdown(html, unsafe_allow_html=True)
 
@@ -224,6 +238,8 @@ def add_program_to_schedule(program, schedule_name):
         'Start time': program.get('Start time', ''),
         'End time': program.get('End time', ''),
         'Interest Category': program.get('Interest Category', ''),
+        'Program Type': program.get('Program Type', ''),
+        'Grade_Level': program.get('Grade_Level', ''),
         'Distance': program.get('Distance', 0),
         'Address': program.get('Address', ''),
         'Cost': program.get('Cost', 0),
@@ -393,8 +409,8 @@ def program_details_modal():
         
         # Show distance badge only (availability status removed as it's now on cards)
         if distance_text:
-            badge_color = "#28a745" if distance_class == "close" else "#ffc107" if distance_class == "medium" else "#dc3545"
-            distance_badge = f'<span style="font-size: 0.8rem; background: {badge_color}; color: white; padding: 3px 8px; border-radius: 12px; margin-right: 6px;">{distance_text}</span>'
+            # Use warm terra cotta styling for distance badges - friendly and distinct
+            distance_badge = f'<span style="font-size: 0.8rem; background: var(--distance-color); color: white; padding: 5px 12px; border-radius: 20px; margin-right: 6px; font-weight: 500; box-shadow: 0 2px 4px rgba(221, 107, 32, 0.3);">🏠 {distance_text}</span>'
             st.markdown(distance_badge, unsafe_allow_html=True)
     
     with col2:
@@ -444,7 +460,18 @@ def program_details_modal():
         st.markdown("#### 📅 Schedule Information")
         st.text(f"Day: {program.get('Day of the week', 'N/A')}")
         st.text(f"Time: {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}")
-        
+
+        # Show Program Type
+        program_type = program.get('Program Type', '')
+        if program_type and not pd.isna(program_type):
+            st.text(f"Type: {program_type}")
+
+            # Show Grade Level for on-site programs
+            if program_type == 'On-site':
+                grade_level = program.get('Grade_Level', '')
+                if grade_level and not pd.isna(grade_level) and str(grade_level).strip():
+                    st.text(f"Grade Levels: {grade_level}")
+
         age_range = program.get('Age range', '')
         # Safe boolean check to avoid pandas Series ambiguity
         if age_range is not None and not pd.isna(age_range) and str(age_range).strip():
@@ -456,6 +483,11 @@ def program_details_modal():
             max_age = int(float(max_age_val)) if max_age_val is not None and not pd.isna(max_age_val) and max_age_val != 0 else 0
             st.text(f"Ages: {min_age} - {max_age}")
         st.text(f"Category: {program.get('Interest Category', 'N/A')}")
+        
+        # Add prerequisite information if available
+        prerequisite = program.get('Prerequisite')
+        if prerequisite is not None and not pd.isna(prerequisite) and str(prerequisite).strip() and str(prerequisite).lower() not in ['none', 'n/a', '']:
+            st.text(f"Prerequisites: {prerequisite}")
         
         st.markdown("#### 💰 Pricing")
         cost_info = []
@@ -498,8 +530,8 @@ def program_details_modal():
         
         school_pickup = program.get('School Pickup From')
         if school_pickup is not None and not pd.isna(school_pickup) and str(school_pickup).strip():
-            st.markdown("#### 🚌 Transportation")
-            st.text(f"School pickup: {school_pickup}")
+            st.markdown("#### 🚌 School Pickup")
+            st.text(f"{school_pickup}")
     
     # Quick action buttons with mobile-optimized styling
     st.markdown("---")
@@ -583,7 +615,7 @@ def save_program_dialog():
     /* Success animation */
     .save-success {
         animation: successPulse 0.6s ease-out;
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+        background: linear-gradient(135deg, var(--availability-color) 0%, #48BB78 100%) !important;
         color: white !important;
         padding: 15px 20px !important;
         border-radius: 12px !important;
@@ -622,33 +654,39 @@ def save_program_dialog():
     # Single column layout - focused on schedule selection
     st.markdown("### Select Schedule")
     
+    # Show context indicator if we're adding to a specific schedule
+    if st.session_state.save_context_schedule:
+        st.info(f"🎯 Adding program to **{st.session_state.save_context_schedule}'s schedule**")
+    
     # Schedule selection
     existing_schedules = list(st.session_state.saved_schedules.keys())
     schedule_options = ["-- Create New Schedule --"] + existing_schedules
     
     # Determine default selection based on context
     default_index = 0  # Default to "Create New Schedule"
+    selectbox_key = "modal_schedule_selectbox"
     
     # If we have a save context (from Add Programs button), pre-select that schedule
     if st.session_state.save_context_schedule and st.session_state.save_context_schedule in existing_schedules:
         context_schedule = st.session_state.save_context_schedule
         default_index = existing_schedules.index(context_schedule) + 1  # +1 because of "Create New" option
+        
+        # Clear the existing selectbox state to force re-evaluation
+        if selectbox_key in st.session_state:
+            del st.session_state[selectbox_key]
     
     selected_option = st.selectbox(
         "Choose a schedule:",
         options=schedule_options,
         index=default_index,
-        key="modal_schedule_selectbox"
+        key=selectbox_key
     )
     
     # Schedule name input with dynamic contextual help and smart defaults
     if selected_option == "-- Create New Schedule --":
-        # Use last used schedule name as default if available
-        default_value = st.session_state.last_schedule_name if st.session_state.last_schedule_name else ""
-        
         schedule_name = st.text_input(
             "Schedule Name:",
-            value=default_value,
+            value="",
             placeholder="Your child's name (e.g., Ami, Mia, Emma)",
             key="modal_schedule_input",
             help="💡 Tip: Press Enter to save quickly!"
@@ -893,12 +931,12 @@ def display_mobile_schedule_view(filtered_df):
             # Show availability badge and heart icon if saved
             if is_saved:
                 # Show availability badge first, then heart icon
-                availability_badge = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 3px 8px; border-radius: 12px; margin-right: 6px;">{availability_status}</span>'
+                availability_badge = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 6px; font-weight: 500; box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);">{availability_status}</span>'
                 heart_badge = '<span style="color: #dc3545; font-weight: 600;">❤️ Saved</span>'
                 status_display = f'{availability_badge}<br>{heart_badge}'
             else:
                 # Show only availability badge
-                status_display = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 3px 8px; border-radius: 12px;">{availability_status}</span>'
+                status_display = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);">{availability_status}</span>'
             
             # Format cost display
             if cost and cost > 0:
@@ -915,30 +953,23 @@ def display_mobile_schedule_view(filtered_df):
             # Format the distance text
             distance_display = f' • 🚗 {distance_text}' if distance_text else ''
             
-            st.markdown(f"""
-            <div class="mobile-program-card">
-                <div class="mobile-card-header">
-                    {category_icon} {program_name}
-                </div>
-                <div class="mobile-card-time">
-                    ⏰ {start_time} - {end_time}
-                </div>
-                <div class="mobile-card-details">
-                    📍 {provider_name}<br>
-                    {status_display}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # Make entire card clickable for details - clean multiline format
+            card_content = f"""{category_icon} {program_name}
+⏰ {start_time} - {end_time}
+📍 {provider_name}"""
             
-            # Action buttons
-            col1, col2 = st.columns(2)
+            # Add status if available, removing HTML formatting for button text
+            if status_display:
+                status_text = status_display.replace('<span style="font-size: 0.8rem; background: #38A169; color: white; padding: 4px 10px; border-radius: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);">', '').replace('</span>', '')
+                card_content += f"\n✅ {status_text}"
             
-            with col1:
-                if st.button("👁️ View Details", key=f"mobile_details_{idx}", use_container_width=True):
-                    st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
-                    st.session_state.show_program_details = True
-                    st.rerun()
+            if st.button(card_content, key=f"mobile_card_{idx}", use_container_width=True, help="Tap to view full program details"):
+                st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
+                st.session_state.show_program_details = True
+                st.rerun()
             
+            # Save button only (centered)
+            col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 if st.button("💾 Save Program", key=f"mobile_save_{idx}", use_container_width=True):
                     st.session_state.popup_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
@@ -962,8 +993,8 @@ def display_schedule_grid(filtered_df):
     st.markdown("""
     <style>
     .schedule-selected {
-        border-left: 3px solid #28a745 !important;
-        background: rgba(40, 167, 69, 0.05) !important;
+        border-left: 3px solid var(--availability-color) !important;
+        background: rgba(56, 161, 105, 0.08) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1079,11 +1110,11 @@ def display_schedule_grid(filtered_df):
                         # Create visual badges for distance and availability
                         badges_html = ""
                         if distance_text:
-                            badge_color = "#28a745" if distance_class == "close" else "#ffc107" if distance_class == "medium" else "#dc3545"
-                            badges_html += f'<span style="font-size: 0.7rem; background: {badge_color}; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 4px;">{distance_text}</span>'
+                            # Use warm terra cotta pill style for distance badges
+                            badges_html += f'<span style="font-size: 0.7rem; background: var(--distance-color); color: white; padding: 4px 10px; border-radius: 15px; margin-left: 4px; font-weight: 500; box-shadow: 0 1px 3px rgba(221, 107, 32, 0.3);">🚶‍♀️ {distance_text}</span>'
                         
                         if availability_status:
-                            badges_html += f'<span style="font-size: 0.7rem; background: {availability_color}; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 4px;">{availability_status}</span>'
+                            badges_html += f'<span style="font-size: 0.7rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; margin-left: 4px; font-weight: 500; box-shadow: 0 1px 3px rgba(56, 161, 105, 0.3);">{availability_status}</span>'
                         
                         # Determine if program is saved for styling
                         saved_class = "saved" if is_saved else ""
@@ -1153,6 +1184,10 @@ if 'selected_interests' not in st.session_state:
 # Removed alternative grid options - keeping standard view only
 if 'child_age' not in st.session_state:
     st.session_state.child_age = 5
+if 'grade_level' not in st.session_state:
+    st.session_state.grade_level = 'Not sure'
+if 'program_type' not in st.session_state:
+    st.session_state.program_type = 'Both'
 if 'start_time' not in st.session_state:
     st.session_state.start_time = "03:00 PM"
 if 'end_time' not in st.session_state:
@@ -1192,25 +1227,30 @@ if 'save_context_schedule' not in st.session_state:
 # Professional Theme & Schedule Grid Styling
 st.markdown("""
 <style>
-/* PROFESSIONAL THEME SYSTEM */
+/* MODERN FRIENDLY THEME SYSTEM */
 :root {
     --primary-color: #1E3D59;
-    --secondary-color: #f8f9fa;
-    --accent-color: #28a745;
-    --text-color: #262730;
-    --border-color: #e9ecef;
-    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --primary-color-light: #2E5D79;
+    --primary-color-dark: #0E2D49;
+    --secondary-color: #FEFEFE;
+    --accent-color: #EBF8FF;
+    --text-color: #2D3748;
+    --border-color: #E2E8F0;
+    --shadow: 0 3px 12px rgba(30, 61, 89, 0.12);
     --font-size-small: 0.875rem;
     --font-size-base: 1rem;
     --font-size-large: 1.125rem;
     --font-size-xl: 1.25rem;
     --font-size-xxl: 1.5rem;
     --font-size-header: 2.2rem;
+    --distance-color: #DD6B20;
+    --availability-color: #38A169;
+    --warm-background: #FEFEFE;
 }
 
-/* FORCE LIGHT THEME */
+/* ORIGINAL NAVY THEME */
 .stApp, .main, [data-testid="stAppViewContainer"] {
-    background-color: #FFFFFF !important;
+    background-color: var(--warm-background) !important;
     color: var(--text-color) !important;
 }
 
@@ -1219,13 +1259,14 @@ st.markdown("""
     font-size: var(--font-size-header) !important;
     text-align: center !important;
     margin-bottom: 2rem !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: var(--primary-color) !important;
+    text-shadow: 0 1px 2px rgba(30, 61, 89, 0.1) !important;
 }
 
 /* PROGRAM CARD STYLING */
 .program-card-container {
-    background-color: var(--secondary-color) !important;
+    background-color: #ffffff !important;
     color: var(--text-color) !important;
     border: 1px solid var(--border-color) !important;
     border-radius: 12px;
@@ -1307,7 +1348,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # App header
-st.markdown("<h1 class='main-header' style='font-size: 2.2rem; color: #1E3D59 !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; font-weight: 700;'>📚 After-School Program Finder</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-header' style='font-size: 2.2rem; color: var(--primary-color) !important; text-align: center; margin-bottom: 2rem; line-height: 1.2; font-weight: 600;'>📚 After-School Program Finder</h1>", unsafe_allow_html=True)
 
 # Load data
 try:
@@ -1339,8 +1380,8 @@ try:
     with st.form(key='program_filter_form'):
         # Child Information Section
         st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">👶 Child Information</div>', unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
+
+        col1, col2, col3 = st.columns([1, 1, 1])
         with col1:
             child_age = st.number_input(
                 "Child's Age",
@@ -1350,10 +1391,24 @@ try:
                 help="Enter your child's age to find age-appropriate programs"
             )
         with col2:
-            st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
+            # Grade level options for on-site programs
+            grade_options = ['Not sure', '3K', 'UPK', 'K', '1st', '2nd', '3rd', '4th', '5th']
+            grade_level = st.selectbox(
+                "Child's Grade Level",
+                options=grade_options,
+                index=grade_options.index(st.session_state.grade_level) if st.session_state.grade_level in grade_options else 0,
+                help="Select grade level for on-site school programs (optional)"
+            )
         with col3:
-            st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
-        
+            # Program type filter
+            program_type_options = ['Both', 'On-site', 'Off-site']
+            program_type = st.selectbox(
+                "Program Type",
+                options=program_type_options,
+                index=program_type_options.index(st.session_state.program_type) if st.session_state.program_type in program_type_options else 0,
+                help="On-site: School-based programs | Off-site: External locations"
+            )
+
         # Program Interests
         st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🎨 Program Interests</div>', unsafe_allow_html=True)
         selected_interests = st.multiselect(
@@ -1428,6 +1483,8 @@ try:
         if submitted:
             # Update session state
             st.session_state.child_age = child_age
+            st.session_state.grade_level = grade_level
+            st.session_state.program_type = program_type
             st.session_state.selected_interests = selected_interests
             st.session_state.selected_days = selected_days
             st.session_state.start_time = start_time
@@ -1442,12 +1499,12 @@ try:
             # Step 1: Searching for programs
             progress_container.markdown("""
             <div style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
                 padding: 15px 20px;
                 border-radius: 12px;
                 text-align: center;
                 margin: 20px 0;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                box-shadow: 0 4px 12px rgba(30, 61, 89, 0.2);
             ">
                 <div style="
                     color: white;
@@ -1472,12 +1529,12 @@ try:
             # Step 2: Fetching program details
             progress_container.markdown("""
             <div style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
                 padding: 15px 20px;
                 border-radius: 12px;
                 text-align: center;
                 margin: 20px 0;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                box-shadow: 0 4px 12px rgba(30, 61, 89, 0.2);
             ">
                 <div style="
                     color: white;
@@ -1499,6 +1556,8 @@ try:
             # Filter programs
             filters = {
                 'child_age': child_age,
+                'grade_level': grade_level,
+                'program_type': program_type,
                 'selected_interests': selected_interests,
                 'selected_days': selected_days,
                 'start_time': start_time,
@@ -1512,12 +1571,12 @@ try:
             # Step 3: Loading schedules
             progress_container.markdown("""
             <div style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
                 padding: 15px 20px;
                 border-radius: 12px;
                 text-align: center;
                 margin: 20px 0;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                box-shadow: 0 4px 12px rgba(30, 61, 89, 0.2);
             ">
                 <div style="
                     color: white;
@@ -1560,7 +1619,7 @@ try:
                 border-radius: 12px;
                 text-align: center;
                 margin: 20px 0;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                box-shadow: 0 4px 12px rgba(30, 61, 89, 0.2);
                 animation: pulse 2s infinite;
             ">
                 <div style="
@@ -1704,7 +1763,7 @@ try:
                         loading_container = st.empty()
                         loading_container.markdown("""
                         <div style="
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
                             padding: 12px 20px;
                             border-radius: 8px;
                             text-align: center;
@@ -1800,12 +1859,25 @@ try:
                     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 }
                 .map-header {
-                    font-size: 1.1rem !important;
+                    font-size: 1rem !important;
                     font-weight: 600 !important;
                     color: #1E3D59 !important;
                     margin: 0 0 15px 0 !important;
                     padding: 0 !important;
                     text-align: center;
+                }
+                
+                /* Reduce map font sizes */
+                .leaflet-container {
+                    font-size: 11px !important;
+                }
+                
+                .leaflet-control-zoom a {
+                    font-size: 14px !important;
+                }
+                
+                .leaflet-control-attribution {
+                    font-size: 9px !important;
                 }
                 @media (max-width: 768px) {
                     .map-container {
@@ -1816,7 +1888,11 @@ try:
                         padding: 15px 1rem;
                     }
                     .map-header {
-                        font-size: 1rem !important;
+                        font-size: 0.9rem !important;
+                    }
+                    
+                    .leaflet-container {
+                        font-size: 10px !important;
                     }
                 }
                 </style>
@@ -1861,24 +1937,38 @@ try:
                             icon=folium.Icon(color="red", icon="home", prefix="fa"),
                         ).add_to(m)
                 
-                # Add program markers
+                # Add program markers with larger, enhanced popups
                 for prog_coords, program in program_coords:
-                    # Create popup with distance if available
+                    # Create enhanced popup with larger size and more information
                     if 'Distance' in program and not pd.isna(program['Distance']):
                         popup_html = f"""
-                        <strong>{program['Program Name']}</strong><br>
-                        {program['Provider Name']}<br>
-                        Distance: {program['Distance']:.2f} miles
+                        <div style="font-size: 14px; width: 280px; padding: 8px;">
+                            <div style="font-size: 16px; font-weight: bold; color: #1E3D59; margin-bottom: 8px; line-height: 1.3;">{program['Program Name']}</div>
+                            <div style="font-size: 13px; color: #333; margin-bottom: 6px;"><strong>Provider:</strong> {program['Provider Name']}</div>
+                            <div style="font-size: 13px; color: #333; margin-bottom: 6px;"><strong>Distance:</strong> {program['Distance']:.2f} miles</div>
+                            {f'<div style="font-size: 13px; color: #333; margin-bottom: 6px;"><strong>Ages:</strong> {program["Ages"]}</div>' if program.get('Ages') else ''}
+                        </div>
                         """
                     else:
                         popup_html = f"""
-                        <strong>{program['Program Name']}</strong><br>
-                        {program['Provider Name']}<br>
-                        {program['Address']}
+                        <div style="font-size: 14px; width: 280px; padding: 8px;">
+                            <div style="font-size: 16px; font-weight: bold; color: #1E3D59; margin-bottom: 8px; line-height: 1.3;">{program['Program Name']}</div>
+                            <div style="font-size: 13px; color: #333; margin-bottom: 6px;"><strong>Provider:</strong> {program['Provider Name']}</div>
+                            <div style="font-size: 13px; color: #333; margin-bottom: 6px;"><strong>Address:</strong> {program['Address']}</div>
+                            {f'<div style="font-size: 13px; color: #333; margin-bottom: 6px;"><strong>Ages:</strong> {program["Ages"]}</div>' if program.get('Ages') else ''}
+                        </div>
                         """
+                    
+                    # Create popup with increased max width
+                    popup = folium.Popup(
+                        html=popup_html,
+                        max_width=320,
+                        show=False
+                    )
+                    
                     folium.Marker(
                         prog_coords,
-                        popup=popup_html,
+                        popup=popup,
                         icon=folium.Icon(color="blue", icon="info-circle", prefix="fa"),
                     ).add_to(m)
                 
@@ -1907,18 +1997,41 @@ try:
                 text-align: center !important;
                 font-style: italic !important;
             }
-            .mobile-program-card {
-                background: white;
-                border: 2px solid var(--border-color);
-                border-radius: 12px;
-                padding: 20px;
-                margin: 15px 0;
-                box-shadow: var(--shadow);
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            /* Mobile clickable program cards */
+            .stButton button[key*="mobile_card"] {
+                background: white !important;
+                border: 2px solid var(--border-color) !important;
+                border-radius: 12px !important;
+                padding: 20px !important;
+                margin: 10px 0 !important;
+                box-shadow: var(--shadow) !important;
+                transition: all 0.2s ease !important;
+                text-align: left !important;
+                white-space: pre-line !important;
+                font-weight: 500 !important;
+                line-height: 1.5 !important;
+                color: var(--text-color) !important;
+                min-height: auto !important;
+                width: 100% !important;
             }
-            .mobile-program-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            
+            .stButton button[key*="mobile_card"]:hover {
+                border-color: var(--primary-color) !important;
+                box-shadow: 0 6px 20px rgba(30, 61, 89, 0.2) !important;
+                transform: translateY(-2px) !important;
+                background: #fafafa !important;
+            }
+            
+            /* Mobile save button styling */
+            .stButton button[key*="mobile_save"] {
+                background: var(--primary-color) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-weight: 600 !important;
+                text-align: center !important;
+                padding: 12px !important;
+                margin: 10px 0 20px 0 !important;
             }
             .mobile-card-header {
                 font-size: var(--font-size-xl);
