@@ -2,11 +2,41 @@ import pandas as pd
 from datetime import datetime
 import requests
 import time
+import json
+import os
 from typing import Optional, Tuple, Dict
 from math import radians, sin, cos, sqrt, atan2
 
-# Cache for storing geocoded coordinates
-coordinate_cache: Dict[str, Optional[Tuple[float, float]]] = {}
+# Cache file path
+CACHE_FILE = 'geocode_cache.json'
+
+# Load cache from file if it exists
+def load_cache() -> Dict[str, Optional[Tuple[float, float]]]:
+    """Load geocode cache from JSON file"""
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r') as f:
+                data = json.load(f)
+                # Convert lists back to tuples (JSON doesn't support tuples)
+                return {k: tuple(v) if v else None for k, v in data.items()}
+        except Exception as e:
+            print(f"Error loading cache: {e}")
+            return {}
+    return {}
+
+def save_cache(cache: Dict[str, Optional[Tuple[float, float]]]):
+    """Save geocode cache to JSON file"""
+    try:
+        # Convert tuples to lists for JSON serialization
+        data = {k: list(v) if v else None for k, v in cache.items()}
+        with open(CACHE_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error saving cache: {e}")
+
+# Cache for storing geocoded coordinates - load from file
+coordinate_cache: Dict[str, Optional[Tuple[float, float]]] = load_cache()
+print(f"Loaded {len(coordinate_cache)} addresses from cache")
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
@@ -45,6 +75,7 @@ def geocode_address(address: str) -> Optional[Tuple[float, float]]:
     """
     Convert address to coordinates using OpenStreetMap's Nominatim API.
     Includes caching and rate limiting.
+    Tries simplified address if full address fails (removes floor/suite info).
     """
     if address in coordinate_cache:
         return coordinate_cache[address]
@@ -56,6 +87,8 @@ def geocode_address(address: str) -> Optional[Tuple[float, float]]:
         # Create a properly formatted search URL
         search_url = "https://nominatim.openstreetmap.org/search"
         headers = {'User-Agent': 'AfterSchoolProgramFinder/1.0'}
+
+        # Try full address first
         params = {
             'q': address,
             'format': 'json',
@@ -70,14 +103,40 @@ def geocode_address(address: str) -> Optional[Tuple[float, float]]:
             lat = float(results[0]['lat'])
             lon = float(results[0]['lon'])
             coordinate_cache[address] = (lat, lon)
+            save_cache(coordinate_cache)  # Save to file
             return (lat, lon)
 
+        # If full address fails, try simplified version (remove floor/suite/apt info)
+        import re
+        # Remove patterns like "Floor 1A", "Suite 200", "Apt 3B", "Unit 5", etc.
+        simplified = re.sub(r'\s+(Floor|Suite|Apt|Apartment|Unit|#)\s+\w+\s*', ' ', address, flags=re.IGNORECASE)
+        simplified = simplified.strip()
+
+        if simplified != address:
+            # Try simplified address
+            time.sleep(1)  # Rate limit again
+            params['q'] = simplified
+            response = requests.get(search_url, headers=headers, params=params)
+            response.raise_for_status()
+            results = response.json()
+
+            if results:
+                lat = float(results[0]['lat'])
+                lon = float(results[0]['lon'])
+                # Cache both the original and simplified address with same coordinates
+                coordinate_cache[address] = (lat, lon)
+                coordinate_cache[simplified] = (lat, lon)
+                save_cache(coordinate_cache)  # Save to file
+                return (lat, lon)
+
         coordinate_cache[address] = None
+        save_cache(coordinate_cache)  # Save to file
         return None
 
     except Exception as e:
         print(f"Error geocoding address {address}: {str(e)}")
         coordinate_cache[address] = None
+        save_cache(coordinate_cache)  # Save to file
         return None
 
 def filter_programs(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
@@ -142,7 +201,7 @@ def filter_programs(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
                 filtered_df = filtered_df[filtered_df['Program Type'].isin(program_types)]
 
     # Grade level filter for on-site programs
-    if filters.get('grade_level') and filters['grade_level'] != 'Not sure':
+    if filters.get('grade_level'):
         selected_grade = filters['grade_level']
 
         # Filter by grade level - only for on-site programs with Grade_Level data

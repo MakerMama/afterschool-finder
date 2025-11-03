@@ -113,16 +113,12 @@ def display_program_card(program):
             border_color = '#E2E8F0'  # Default gray
             type_badge = ''
 
-        # Get enrollment status badge
-        availability_status, availability_color = get_availability_status(program)
-        enrollment_badge = f'<span style="background: {availability_color}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{availability_status}</span>'
-
         html = f"""
         <div class='program-card-container' style='border-left: 4px solid {border_color};'>
             <h3 class='program-card-title'>{program.get('Program Name', 'N/A')}</h3>
             <p class='program-card-provider'>{program.get('Provider Name', 'N/A')}</p>
             <div style='margin: 8px 0;'>
-                {type_badge}{enrollment_badge}
+                {type_badge}
             </div>
             <div class='program-card-info-bar'>
                 <p class='program-card-text'><span style='margin-right: 8px;'>⏰</span>{program.get('Day of the week', 'N/A')} • {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}</p>"""
@@ -135,7 +131,7 @@ def display_program_card(program):
         enrollment_type = program.get('Enrollment Type', '').strip() if isinstance(program.get('Enrollment Type'), str) else ''
         
         if 'Cost' in program and not pd.isna(program['Cost']):
-            base_cost = f"${program['Cost']:.2f}"
+            base_cost = f"${program['Cost']:,.2f}"
             if enrollment_type:
                 if 'semester' in enrollment_type.lower():
                     base_cost += "/semester"
@@ -148,7 +144,7 @@ def display_program_card(program):
             cost_info.append(base_cost)
         
         if 'Cost Per Class' in program and not pd.isna(program['Cost Per Class']):
-            cost_info.append(f"${program['Cost Per Class']:.2f}/class")
+            cost_info.append(f"${program['Cost Per Class']:,.2f}/class")
         
         if cost_info:
             html += f"<p class='program-card-text'><span style='margin-right: 8px;'>💰</span>{' • '.join(cost_info)}</p>"
@@ -421,8 +417,7 @@ def program_details_modal():
         icon = get_category_icon(category)
         distance = program.get('Distance', 0)
         distance_class, distance_text = get_distance_badge_info(distance)
-        availability_status, availability_color = get_availability_status(program)
-        
+
         st.markdown(f"### {icon} {program.get('Program Name', 'N/A')}")
         st.markdown(f"{program.get('Provider Name', 'N/A')}")
         
@@ -471,7 +466,16 @@ def program_details_modal():
                 st.session_state.show_save_dialog = True
                 st.session_state.show_program_details = False  # Close details modal
                 st.rerun()
-    
+
+    # Program description (if available)
+    description = program.get('Description')
+    if description is not None and not pd.isna(description) and str(description).strip():
+        st.markdown("---")
+        st.markdown("**📝 Program Description**")
+        st.markdown(f"_{description}_")
+
+    st.markdown("---")
+
     # Program details in two columns
     detail_col1, detail_col2 = st.columns([3, 2])
     
@@ -514,7 +518,7 @@ def program_details_modal():
         if cost is not None and not pd.isna(cost):
             enrollment_type = program.get('Enrollment Type', '')
             enrollment_type = enrollment_type.strip() if isinstance(enrollment_type, str) else ''
-            base_cost = f"${float(cost):.2f}"
+            base_cost = f"${float(cost):,.2f}"
             if enrollment_type:
                 if 'semester' in enrollment_type.lower():
                     base_cost += "/semester"
@@ -528,7 +532,7 @@ def program_details_modal():
         
         cost_per_class = program.get('Cost Per Class')
         if cost_per_class is not None and not pd.isna(cost_per_class):
-            cost_info.append(f"${float(cost_per_class):.2f}/class")
+            cost_info.append(f"${float(cost_per_class):,.2f}/class")
         
         if cost_info:
             st.text(" • ".join(cost_info))
@@ -794,15 +798,14 @@ def save_program_dialog():
                     st.session_state.save_success_message = f"Saved to {schedule_name_clean}!"
                     st.session_state.current_schedule = schedule_name_clean
                     
-                    # Clear popup state and close modal with smooth transition
+                    # Clear popup state and close modal
                     st.session_state.show_save_popup = False
                     st.session_state.show_save_dialog = False
                     st.session_state.popup_program_data = None
                     # Clear the save context since we've successfully saved
                     st.session_state.save_context_schedule = None
-                    
-                    # Add a brief success message in main app
-                    st.success(f"✅ {program_name} saved to '{schedule_name_clean}' schedule!", icon="🎉")
+
+                    # Rerun to close dialog (will scroll to top, but that's the trade-off)
                     st.rerun()
                 else:
                     st.warning("⚠️ Program already exists in this schedule!")
@@ -874,18 +877,7 @@ def display_mobile_schedule_view(filtered_df):
                 st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Add Programs button for schedule views (not All Programs view)
-    current_schedule = st.session_state.get('current_schedule', 'Schedule')
-    if current_schedule != 'All Programs':
-        if st.button(f"➕ Add Programs to {current_schedule}", use_container_width=True, type="secondary"):
-            # Set the save context to remember which schedule we're adding to
-            st.session_state.save_context_schedule = current_schedule
-            # Switch to All Programs view temporarily for adding programs
-            st.session_state.current_schedule = 'All Programs'
-            st.success(f"💡 Browse programs below and save them to **{current_schedule}'s schedule**")
-            st.rerun()
-    
+
     selected_day = st.session_state.mobile_selected_day
     
     # Filter programs for selected day
@@ -933,7 +925,6 @@ def display_mobile_schedule_view(filtered_df):
             # Get visual elements
             category_icon = get_category_icon(category)
             distance_class, distance_text = get_distance_badge_info(program.get('Distance', 0))
-            availability_status, availability_color = get_availability_status(program)
 
             # Get program type badge text (for mobile display)
             program_type = program.get('Program Type', '')
@@ -956,15 +947,12 @@ def display_mobile_schedule_view(filtered_df):
                 if is_saved:
                     break
             
-            # Show availability badge and heart icon if saved
+            # Show heart icon if saved
             if is_saved:
-                # Show availability badge first, then heart icon
-                availability_badge = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 6px; font-weight: 500; box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);">{availability_status}</span>'
                 heart_badge = '<span style="color: #dc3545; font-weight: 600;">❤️ Saved</span>'
-                status_display = f'{availability_badge}<br>{heart_badge}'
+                status_display = heart_badge
             else:
-                # Show only availability badge
-                status_display = f'<span style="font-size: 0.8rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);">{availability_status}</span>'
+                status_display = ''
             
             # Format cost display
             if cost and cost > 0:
@@ -986,11 +974,9 @@ def display_mobile_schedule_view(filtered_df):
 ⏰ {start_time} - {end_time}
 📍 {provider_name}"""
 
-            # Add program location and enrollment status badges
+            # Add program location badge
             if type_badge_text:
                 card_content += f"\n📍 {type_badge_text}"
-            if availability_status:
-                card_content += f" • ✅ {availability_status}"
             
             if st.button(card_content, key=f"mobile_card_{idx}", use_container_width=True, help="Tap to view full program details"):
                 st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
@@ -1122,7 +1108,6 @@ def display_schedule_grid(filtered_df):
                         # Get enhanced visual information using utils functions
                         icon = get_category_icon(category)
                         distance_class, distance_text = get_distance_badge_info(distance)
-                        availability_status, availability_color = get_availability_status(program)
 
                         # Get program type badge
                         program_type = program.get('Program Type', '')
@@ -1145,14 +1130,11 @@ def display_schedule_grid(filtered_df):
                                     is_saved = True
                                     break
                         
-                        # Create visual badges for program type, enrollment status, and distance
+                        # Create visual badges for program type and distance
                         badges_html = ""
                         # Program location badge first
                         if type_badge:
                             badges_html += type_badge
-                        # Enrollment status badge second
-                        if availability_status:
-                            badges_html += f'<span style="font-size: 0.7rem; background: {availability_color}; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">{availability_status}</span>'
                         # Distance badge last
                         if distance_text:
                             badges_html += f'<span style="font-size: 0.7rem; background: var(--distance-color); color: white; padding: 4px 10px; border-radius: 15px; font-weight: 500;">🚶‍♀️ {distance_text}</span>'
@@ -1230,7 +1212,7 @@ if 'grade_level' not in st.session_state:
 if 'program_types' not in st.session_state:
     st.session_state.program_types = ['On-site', 'Off-site']
 if 'start_time' not in st.session_state:
-    st.session_state.start_time = "03:00 PM"
+    st.session_state.start_time = "02:00 PM"
 if 'end_time' not in st.session_state:
     st.session_state.end_time = "06:00 PM"
 if 'user_address' not in st.session_state:
@@ -1246,6 +1228,8 @@ if 'saved_schedules' not in st.session_state:
     st.session_state.saved_schedules = {}
 if 'current_schedule' not in st.session_state:
     st.session_state.current_schedule = "All Programs"
+if 'show_create_schedule' not in st.session_state:
+    st.session_state.show_create_schedule = False  # True when showing create schedule dialog
 if 'show_save_popup' not in st.session_state:
     st.session_state.show_save_popup = False
 if 'popup_program_data' not in st.session_state:
@@ -1399,7 +1383,14 @@ st.markdown("""
 # Load data
 try:
     df = load_and_process_data("attached_assets/ProgramData.csv")
-    
+
+    # Filter to show only programs with spots open (hide waitlist and full programs)
+    def has_spots_open(program):
+        availability_status, _ = get_availability_status(program)
+        return availability_status == "Spots Open"
+
+    df = df[df.apply(has_spots_open, axis=1)].reset_index(drop=True)
+
     # Get unique values for filters
     interest_categories = get_unique_values(df, 'Interest Category')
     days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -1438,11 +1429,11 @@ try:
             )
         with col2:
             # Grade level options for on-site programs (constrained to 3K-K)
-            grade_options = ['Not sure', '3K', 'UPK', 'K']
+            grade_options = ['3K', 'UPK', 'K']
             grade_level = st.selectbox(
                 "Child's Grade Level",
                 options=grade_options,
-                index=grade_options.index(st.session_state.grade_level) if st.session_state.grade_level in grade_options else 3,
+                index=grade_options.index(st.session_state.grade_level) if st.session_state.grade_level in grade_options else 2,
                 help="Select grade level for on-site school programs (optional)"
             )
 
@@ -1716,7 +1707,7 @@ try:
     # Show results if form was submitted
     if st.session_state.submitted and st.session_state.filtered_df is not None:
         filtered_df = st.session_state.filtered_df
-        
+
         # Show number of results with better styling
         result_text = f"🎉 Found {len(filtered_df)} programs matching your criteria!"
         if len(filtered_df) == 0:
@@ -1758,88 +1749,7 @@ try:
                 }
                 </style>
                 """, unsafe_allow_html=True)
-                
-                # Schedule selection - label and dropdown on same line
-                nav_col1, nav_col2 = st.columns([1, 3])
-                
-                with nav_col1:
-                    st.markdown("**📅 View Schedule for:**")
-                
-                with nav_col2:
-                    # Create schedule options with program counts
-                    schedule_options = ["All Programs"]
-                    schedule_name_mapping = {"All Programs": "All Programs"}
-                    
-                    # Add saved schedules with program counts
-                    total_family_programs = 0
-                    for schedule_name, programs in st.session_state.saved_schedules.items():
-                        program_count = len(programs)
-                        total_family_programs += program_count
-                        if program_count == 1:
-                            display_name = f"{schedule_name} (1 program)"
-                        else:
-                            display_name = f"{schedule_name} ({program_count} programs)"
-                        schedule_options.append(display_name)
-                        schedule_name_mapping[display_name] = schedule_name
-                    
-                    # Add Family View if there are multiple schedules
-                    if len(st.session_state.saved_schedules) > 1 and total_family_programs > 0:
-                        family_display_name = f"Family View ({total_family_programs} total)"
-                        schedule_options.append(family_display_name)
-                        schedule_name_mapping[family_display_name] = "Family View"
-                    
-                    # Find current schedule display name for index
-                    current_display_name = "All Programs"
-                    if st.session_state.current_schedule != "All Programs":
-                        for display_name, actual_name in schedule_name_mapping.items():
-                            if actual_name == st.session_state.current_schedule:
-                                current_display_name = display_name
-                                break
-                    
-                    try:
-                        current_index = schedule_options.index(current_display_name)
-                    except ValueError:
-                        current_index = 0  # Default to "All Programs"
-                    
-                    # Create dropdown for schedule selection
-                    selected_display = st.selectbox(
-                        "",
-                        options=schedule_options,
-                        index=current_index,
-                        key="schedule_dropdown",
-                        label_visibility="collapsed",
-                        help="Select which schedule to display"
-                    )
-                    
-                    # Convert display name back to actual schedule name
-                    selected_schedule = schedule_name_mapping[selected_display]
-                    
-                    # Update current schedule if changed with loading indicator
-                    if selected_schedule != st.session_state.current_schedule:
-                        # Clear modal states when switching schedules to prevent modal bugs
-                        st.session_state.show_program_details = False
-                        st.session_state.show_save_dialog = False
-                        st.session_state.details_program_data = None
-                        st.session_state.popup_program_data = None
-                        # Show loading indicator
-                        loading_container = st.empty()
-                        loading_container.markdown("""
-                        <div style="
-                            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
-                            padding: 12px 20px;
-                            border-radius: 8px;
-                            text-align: center;
-                            margin: 10px 0;
-                            color: white;
-                            font-weight: 500;
-                        ">
-                            🔄 Switching to {selected_display}...
-                        </div>
-                        """.format(selected_display=selected_display), unsafe_allow_html=True)
-                        
-                        st.session_state.current_schedule = selected_schedule
-                        st.rerun()
-                
+
                 # Map toggle button
                 st.markdown("**🗺️ Map:**")
                 map_button_text = "Hide Map" if st.session_state.show_map else "Show Map"
@@ -2142,16 +2052,16 @@ try:
             </style>
             """, unsafe_allow_html=True)
             
-            # Initialize view mode in session state - default to Mobile View
+            # Initialize view mode in session state - default to Desktop Grid View
             if 'view_mode' not in st.session_state:
-                st.session_state.view_mode = 'Mobile View'
+                st.session_state.view_mode = 'Desktop Grid View'
             
             # Streamlined view toggle
             st.markdown('<div class="view-toggle">', unsafe_allow_html=True)
             view_mode = st.radio(
                 "View:",
                 options=['📱 Mobile View', '🖥️ Desktop Grid View'],
-                index=0 if st.session_state.view_mode == 'Mobile View' else 1,
+                index=1 if st.session_state.view_mode == 'Desktop Grid View' else 0,
                 horizontal=True,
                 key="view_toggle"
             )
@@ -2163,23 +2073,160 @@ try:
                 st.session_state.view_mode = 'Mobile View'
             
             st.markdown('</div>', unsafe_allow_html=True)
-            
+
+            # Schedule Pills Navigation - appears after view toggle
+            st.markdown("""
+            <style>
+            .schedule-pills {
+                background: #f8f9fa;
+                border-radius: 12px;
+                padding: 1.2rem;
+                margin: 1.5rem 0;
+                border: 1px solid #e2e8f0;
+            }
+            .pills-label {
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #64748B;
+                margin-bottom: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            st.markdown('<div class="schedule-pills">', unsafe_allow_html=True)
+            st.markdown('<div class="pills-label">📚 VIEW:</div>', unsafe_allow_html=True)
+
+            # Calculate how many pills we'll have
+            num_schedules = len(st.session_state.saved_schedules)
+
+            # Create dynamic columns - all pills in one row
+            if num_schedules == 0:
+                # Just "All Programs"
+                pill_cols = st.columns([2, 2])
+            else:
+                # All programs + all schedule pills
+                pill_cols = st.columns([1.2] + [1.2] * num_schedules)
+
+            # "All Programs" pill
+            with pill_cols[0]:
+                if st.button("📚 All Programs",
+                             key="pill_all",
+                             use_container_width=True,
+                             type="primary" if st.session_state.current_schedule == "All Programs" else "secondary"):
+                    st.session_state.current_schedule = "All Programs"
+                    st.rerun()
+
+            # Schedule pills - show all schedules
+            col_index = 1
+            for schedule_name, programs in st.session_state.saved_schedules.items():
+                if col_index < len(pill_cols):
+                    with pill_cols[col_index]:
+                        # Truncate schedule name to 20 characters for better display
+                        display_name = schedule_name if len(schedule_name) <= 20 else schedule_name[:20] + "..."
+                        pill_label = f"{display_name}\n({len(programs)} programs)"
+                        if st.button(pill_label,
+                                    key=f"pill_{schedule_name}",
+                                    use_container_width=True,
+                                    type="primary" if st.session_state.current_schedule == schedule_name else "secondary"):
+                            st.session_state.current_schedule = schedule_name
+                            st.rerun()
+                    col_index += 1
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Show schedule info if viewing a single schedule (simpler styling)
+            if st.session_state.current_schedule != "All Programs" and st.session_state.current_schedule in st.session_state.saved_schedules:
+                schedule_programs = st.session_state.saved_schedules[st.session_state.current_schedule]
+
+                # Calculate total cost
+                total_cost = 0
+                for prog in schedule_programs:
+                    if 'Cost Per Class' in prog and prog['Cost Per Class'] and not pd.isna(prog['Cost Per Class']):
+                        total_cost += float(prog['Cost Per Class'])
+
+                # Info display with Share button
+                info_col, share_col = st.columns([4, 1])
+
+                with info_col:
+                    st.markdown(f"""
+                    <div style='background: #f8f9fa;
+                                padding: 0.8rem 1rem;
+                                border-radius: 8px;
+                                margin: 1rem 0;
+                                border-left: 4px solid var(--primary-color);'>
+                        <div style='font-size: 1rem; font-weight: 600; color: var(--text-color);'>
+                            📅 {st.session_state.current_schedule}
+                        </div>
+                        <div style='font-size: 0.9rem; color: #64748B; margin-top: 0.3rem;'>
+                            {len(schedule_programs)} programs • ${total_cost:,.2f}/week
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with share_col:
+                    st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+                    if st.button("📤 Share", key="share_schedule_btn", use_container_width=True):
+                        st.session_state.show_share_text = True
+
+                # Show shareable text when Share button clicked
+                if st.session_state.get('show_share_text', False):
+                    # Format schedule as text
+                    share_text = f"📅 {st.session_state.current_schedule}\n"
+                    share_text += f"{len(schedule_programs)} programs • ${total_cost:,.2f}/week\n"
+                    share_text += "=" * 50 + "\n\n"
+
+                    for prog in schedule_programs:
+                        # Day and time
+                        day = prog.get('Day of the week', 'N/A')
+                        start_time = prog.get('Start time', 'N/A')
+                        end_time = prog.get('End time', 'N/A')
+                        share_text += f"{day} {start_time} - {end_time}\n"
+
+                        # Program name and provider
+                        program_name = prog.get('Program Name', 'N/A')
+                        provider = prog.get('Provider Name', 'N/A')
+                        share_text += f"{program_name} - {provider}\n"
+
+                        # Description (if available)
+                        description = prog.get('Description')
+                        if description and not pd.isna(description) and str(description).strip():
+                            share_text += f"{description}\n"
+
+                        # Address
+                        address = prog.get('Address', 'N/A')
+                        share_text += f"{address}\n"
+
+                        # Cost
+                        cost = prog.get('Cost Per Class', prog.get('Cost', 0))
+                        if cost and not pd.isna(cost):
+                            share_text += f"${float(cost):,.2f}/week\n"
+
+                        share_text += "\n"
+
+                    # Display text with built-in copy button
+                    st.markdown("**📋 Share this schedule:**")
+                    st.code(share_text, language=None)
+
+                    # Copy and Close buttons
+                    copy_col, close_col = st.columns([1, 1])
+
+                    with copy_col:
+                        if st.button("📋 Copy to Clipboard", key="copy_share_text", use_container_width=True, type="primary"):
+                            st.success("✅ Copied! You can now paste it in any messaging app.")
+
+                    with close_col:
+                        if st.button("✖️ Close", key="close_share_text", use_container_width=True):
+                            st.session_state.show_share_text = False
+                            st.rerun()
+
             if st.session_state.view_mode == 'Mobile View':
                 # Mobile View Implementation
                 display_mobile_schedule_view(filtered_df)
             else:
                 # Desktop Grid View
                 current_schedule = st.session_state.get('current_schedule', 'Schedule')
-                
-                # Add Programs button for schedule views (not All Programs view)
-                if current_schedule != 'All Programs':
-                    if st.button(f"➕ Add Programs to {current_schedule}", use_container_width=True, type="secondary"):
-                        # Set the save context to remember which schedule we're adding to
-                        st.session_state.save_context_schedule = current_schedule
-                        # Switch to All Programs view temporarily for adding programs
-                        st.session_state.current_schedule = 'All Programs'
-                        st.success(f"💡 Browse programs below and save them to **{current_schedule}'s schedule**")
-                        st.rerun()
                 
                 st.markdown('<div class="schedule-instruction">Click on any program card, then use 💾 Save to add to your child\'s schedule</div>', unsafe_allow_html=True)
                 display_schedule_grid(filtered_df)
