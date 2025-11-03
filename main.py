@@ -472,7 +472,7 @@ def program_details_modal():
     if description is not None and not pd.isna(description) and str(description).strip():
         st.markdown("---")
         st.markdown("**📝 Program Description**")
-        st.markdown(f"_{description}_")
+        st.markdown(f"{description}")
 
     st.markdown("---")
 
