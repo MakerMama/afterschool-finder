@@ -484,6 +484,21 @@ def program_details_modal():
         st.text(f"Day: {program.get('Day of the week', 'N/A')}")
         st.text(f"Time: {program.get('Start time', 'N/A')} - {program.get('End time', 'N/A')}")
 
+        # Format and display program dates
+        start_date = program.get('Start date')
+        end_date = program.get('End date')
+        if start_date and end_date and not pd.isna(start_date) and not pd.isna(end_date):
+            try:
+                # Parse the dates (assuming format like "9/8/2025")
+                start_dt = pd.to_datetime(start_date)
+                end_dt = pd.to_datetime(end_date)
+                # Format nicely: "September 8, 2025 - December 16, 2025"
+                formatted_dates = f"{start_dt.strftime('%B %d, %Y')} - {end_dt.strftime('%B %d, %Y')}"
+                st.text(f"Dates: {formatted_dates}")
+            except:
+                # Fallback to raw values if parsing fails
+                st.text(f"Dates: {start_date} - {end_date}")
+
         # Show Program Type
         program_type = program.get('Program Type', '')
         if program_type and not pd.isna(program_type):
@@ -505,6 +520,19 @@ def program_details_modal():
             min_age = int(float(min_age_val)) if min_age_val is not None and not pd.isna(min_age_val) and min_age_val != 0 else 0
             max_age = int(float(max_age_val)) if max_age_val is not None and not pd.isna(max_age_val) and max_age_val != 0 else 0
             st.text(f"Ages: {min_age} - {max_age}")
+
+            # Show note if program has fractional age requirements
+            has_fractional = False
+            if min_age_val is not None and not pd.isna(min_age_val):
+                if float(min_age_val) % 1 != 0:  # Has decimal component
+                    has_fractional = True
+            if max_age_val is not None and not pd.isna(max_age_val):
+                if float(max_age_val) % 1 != 0:  # Has decimal component
+                    has_fractional = True
+
+            if has_fractional:
+                st.info(f"ℹ️ This program has specific age requirements (min age: {min_age_val}). Please contact the provider to verify your child's eligibility.")
+
         st.text(f"Category: {program.get('Interest Category', 'N/A')}")
         
         # Add prerequisite information if available
@@ -1160,19 +1188,19 @@ def display_schedule_grid(filtered_df):
                             selected_class = "program-selected" if in_schedule else ""
                             st.markdown(f'<div class="program-card {saved_class} {selected_class}">', unsafe_allow_html=True)
                             
-                            # Use full width for program info - no heart button
-                            # Optimize text for single line display - more space for program name
-                            display_name = program_name[:25] + "..." if len(program_name) > 25 else program_name
-                            
-                            # Simple tooltip with schedule info if applicable
+                            # Truncate provider and program names for two-line display
+                            display_provider = provider_name[:20] + "..." if len(provider_name) > 20 else provider_name
+                            display_program = program_name[:20] + "..." if len(program_name) > 20 else program_name
+
+                            # Simple tooltip with full names and schedule info
                             if in_schedule:
-                                tooltip_text = f"Provider: {provider_name}. In schedule: {in_schedule}. Click to view full details."
+                                tooltip_text = f"{provider_name} - {program_name}. In schedule: {in_schedule}. Click to view full details."
                             else:
-                                tooltip_text = f"Provider: {provider_name}. Click to view full details."
-                            
+                                tooltip_text = f"{provider_name} - {program_name}. Click to view full details."
+
                             # Enhanced button with visual badges and child labels for Family View
                             button_key = f"prog_{day}_{time_slot}_{i}"
-                            
+
                             # Add child label for Family View
                             child_label = ""
                             if st.session_state.current_schedule == "Family View" and 'Schedule_Name' in program:
@@ -1180,7 +1208,11 @@ def display_schedule_grid(filtered_df):
                                 if schedule_name:
                                     child_label = f"👧 {schedule_name}: "
 
-                            button_text = f"{child_label}{icon} {display_name}" + (" 💖" if in_schedule else "")
+                            # Two-line button text: provider (smaller, gray) + program name
+                            button_text = f"{child_label}{icon} {display_program}" + (" 💖" if in_schedule else "")
+
+                            # Display provider name above button (smaller, gray text)
+                            st.markdown(f'<div style="font-size: 0.75rem; color: #6c757d; margin-bottom: 4px;">{display_provider}</div>', unsafe_allow_html=True)
                             
                             if st.button(button_text, 
                                        key=button_key,
@@ -1201,7 +1233,7 @@ def display_schedule_grid(filtered_df):
 
 # Initialize session state
 if 'selected_days' not in st.session_state:
-    st.session_state.selected_days = []
+    st.session_state.selected_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 if 'selected_interests' not in st.session_state:
     st.session_state.selected_interests = []
 # Removed alternative grid options - keeping standard view only
@@ -2052,23 +2084,23 @@ try:
             </style>
             """, unsafe_allow_html=True)
             
-            # Initialize view mode in session state - default to Desktop Grid View
+            # Initialize view mode in session state - default to Desktop Timetable View
             if 'view_mode' not in st.session_state:
-                st.session_state.view_mode = 'Desktop Grid View'
+                st.session_state.view_mode = 'Desktop Timetable View'
             
             # Streamlined view toggle
             st.markdown('<div class="view-toggle">', unsafe_allow_html=True)
             view_mode = st.radio(
                 "View:",
-                options=['📱 Mobile View', '🖥️ Desktop Grid View'],
-                index=1 if st.session_state.view_mode == 'Desktop Grid View' else 0,
+                options=['📱 Mobile View', '🖥️ Desktop Timetable View'],
+                index=1 if st.session_state.view_mode == 'Desktop Timetable View' else 0,
                 horizontal=True,
                 key="view_toggle"
             )
             
             # Update session state to handle both old and new naming
-            if view_mode == '🖥️ Desktop Grid View':
-                st.session_state.view_mode = 'Desktop Grid View'
+            if view_mode == '🖥️ Desktop Timetable View':
+                st.session_state.view_mode = 'Desktop Timetable View'
             else:
                 st.session_state.view_mode = 'Mobile View'
             
@@ -2225,7 +2257,7 @@ try:
                 # Mobile View Implementation
                 display_mobile_schedule_view(filtered_df)
             else:
-                # Desktop Grid View
+                # Desktop Timetable View
                 current_schedule = st.session_state.get('current_schedule', 'Schedule')
                 
                 st.markdown('<div class="schedule-instruction">Click on any program card, then use 💾 Save to add to your child\'s schedule</div>', unsafe_allow_html=True)

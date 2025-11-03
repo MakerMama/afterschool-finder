@@ -150,10 +150,12 @@ def filter_programs(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
         filtered_df = filtered_df[filtered_df['Day of the week'].isin(filters['selected_days'])]
 
     # Child age filter - show programs where child's age falls within the program's age range
+    # Round down min ages (e.g., 3.5 becomes 3) to be more inclusive for parents
     if filters.get('child_age') is not None:
         child_age = filters['child_age']
+        import numpy as np
         filtered_df = filtered_df[
-            (filtered_df['Min Age'] <= child_age) & 
+            (np.floor(filtered_df['Min Age']) <= child_age) &
             (filtered_df['Max Age'] >= child_age)
         ]
 
