@@ -1532,7 +1532,19 @@ try:
                 step=0.5,
                 help="Maximum distance you're willing to travel"
             )
-        
+
+        # Smart address completion - auto-append Brooklyn, NY if incomplete
+        address_auto_completed = False
+        if user_address and user_address.strip():
+            # Check if address is missing state (doesn't contain "NY" or similar state abbreviations)
+            has_state = any(state in user_address.upper() for state in ['NY', 'NEW YORK', 'NJ', 'CT', 'PA'])
+
+            if not has_state:
+                # Auto-append Brooklyn, NY
+                user_address = user_address.strip() + ", Brooklyn, NY"
+                address_auto_completed = True
+                st.info("ℹ️ Auto-completed address to: **" + user_address + "**\n\nFor more accurate results, please enter your full address including city and state.")
+
         # Schedule Preferences Section
         st.markdown('<div style="font-size: var(--font-size-large); font-weight: 600; color: var(--primary-color); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">⏰ Schedule Preferences</div>', unsafe_allow_html=True)
         
