@@ -104,11 +104,11 @@ def display_program_card(program):
         # Determine program type badge and border color
         program_type = program.get('Program Type', '')
         if program_type == 'On-site':
-            border_color = '#0891B2'  # Cyan for on-site
-            type_badge = '<span style="background: #0891B2; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">On-site</span>'
+            border_color = '#A7E1E5'  # Pastel teal for on-site
+            type_badge = '<span style="background: #A7E1E5; color: #2C3E50; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">On-site</span>'
         elif program_type == 'Off-site':
-            border_color = '#F59E0B'  # Amber for off-site
-            type_badge = '<span style="background: #F59E0B; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">Off-site</span>'
+            border_color = '#FFD4A3'  # Pastel peach for off-site
+            type_badge = '<span style="background: #FFD4A3; color: #2C3E50; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;">Off-site</span>'
         else:
             border_color = '#E2E8F0'  # Default gray
             type_badge = ''
@@ -160,7 +160,7 @@ def display_program_card(program):
         # Show Program Type badge
         program_type = program.get('Program Type', '')
         if program_type and not pd.isna(program_type):
-            type_color = '#0891B2' if program_type == 'On-site' else '#F59E0B'
+            type_color = '#A7E1E5' if program_type == 'On-site' else '#FFD4A3'
             html += f"<p class='program-card-secondary'><span style='background: {type_color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 6px;'>{program_type}</span>"
 
             # Show Grade Level for on-site programs
@@ -424,7 +424,7 @@ def program_details_modal():
         # Show distance badge only (availability status removed as it's now on cards)
         if distance_text:
             # Use warm terra cotta styling for distance badges - friendly and distinct
-            distance_badge = f'<span style="font-size: 0.8rem; background: var(--distance-color); color: white; padding: 5px 12px; border-radius: 20px; margin-right: 6px; font-weight: 500; box-shadow: 0 2px 4px rgba(221, 107, 32, 0.3);">🏠 {distance_text}</span>'
+            distance_badge = f'<span style="font-size: 0.8rem; background: var(--distance-color); color: #2C3E50; padding: 5px 12px; border-radius: 20px; margin-right: 6px; font-weight: 500; box-shadow: 0 2px 4px rgba(221, 107, 32, 0.3);">🏠 {distance_text}</span>'
             st.markdown(distance_badge, unsafe_allow_html=True)
     
     with col2:
@@ -1148,9 +1148,9 @@ def display_schedule_grid(filtered_df):
                         # Get program type badge
                         program_type = program.get('Program Type', '')
                         if program_type == 'On-site':
-                            type_badge = f'<span style="font-size: 0.7rem; background: #0891B2; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">On-site</span>'
+                            type_badge = f'<span style="font-size: 0.7rem; background: #A7E1E5; color: #2C3E50; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">On-site</span>'
                         elif program_type == 'Off-site':
-                            type_badge = f'<span style="font-size: 0.7rem; background: #F59E0B; color: white; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">Off-site</span>'
+                            type_badge = f'<span style="font-size: 0.7rem; background: #FFD4A3; color: #2C3E50; padding: 4px 10px; border-radius: 12px; margin-right: 4px; font-weight: 500;">Off-site</span>'
                         else:
                             type_badge = ''
 
@@ -1173,7 +1173,7 @@ def display_schedule_grid(filtered_df):
                             badges_html += type_badge
                         # Distance badge last
                         if distance_text:
-                            badges_html += f'<span style="font-size: 0.7rem; background: var(--distance-color); color: white; padding: 4px 10px; border-radius: 15px; font-weight: 500;">🚶‍♀️ {distance_text}</span>'
+                            badges_html += f'<span style="font-size: 0.7rem; background: var(--distance-color); color: #2C3E50; padding: 4px 10px; border-radius: 15px; font-weight: 500;">🚶‍♀️ {distance_text}</span>'
                         
                         # Determine if program is saved for styling
                         saved_class = "saved" if is_saved else ""
@@ -1309,7 +1309,7 @@ st.markdown("""
     --font-size-xl: 1.25rem;
     --font-size-xxl: 1.5rem;
     --font-size-header: 2.2rem;
-    --distance-color: #DD6B20;
+    --distance-color: #FFD4A3;
     --availability-color: #38A169;
     --warm-background: #FEFEFE;
 }
@@ -1659,7 +1659,16 @@ try:
                 'user_address': user_address,
                 'max_distance': max_distance
             }
-            
+
+            # Close program details modal when filters change
+            current_filters_str = str(filters)
+            if 'previous_filters' not in st.session_state:
+                st.session_state.previous_filters = current_filters_str
+            elif st.session_state.previous_filters != current_filters_str:
+                # Filters changed - close the modal
+                st.session_state.show_program_details = False
+                st.session_state.previous_filters = current_filters_str
+
             filtered_df = filter_programs(df, filters)
             
             # Step 3: Loading schedules
