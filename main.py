@@ -882,8 +882,16 @@ def get_desktop_encouragement_hint(filtered_df, current_schedule):
 
 def display_mobile_schedule_view(filtered_df):
     """Display mobile-optimized single day view with program cards."""
-    
-    available_days = sorted(filtered_df['Day of the week'].unique()) if len(filtered_df) > 0 else ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+
+    # Define correct day order
+    day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+    # Sort days in correct week order instead of alphabetically
+    if len(filtered_df) > 0:
+        unique_days = filtered_df['Day of the week'].unique()
+        available_days = [day for day in day_order if day in unique_days]
+    else:
+        available_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     
     # Initialize selected day in session state
     if 'mobile_selected_day' not in st.session_state:
@@ -1006,18 +1014,18 @@ def display_mobile_schedule_view(filtered_df):
             if type_badge_text:
                 card_content += f"\n📍 {type_badge_text}"
             
-            if st.button(card_content, key=f"mobile_card_{idx}", use_container_width=True, help="Tap to view full program details"):
-                st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
-                st.session_state.show_program_details = True
-                st.rerun()
-            
-            # Save button only (centered)
-            col1, col2, col3 = st.columns([1, 2, 1])
+            # Program info and save button on one line
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                if st.button(card_content, key=f"mobile_card_{idx}", use_container_width=True, help="Tap to view full program details"):
+                    st.session_state.details_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
+                    st.session_state.show_program_details = True
+                    st.rerun()
             with col2:
-                if st.button("💾 Save Program", key=f"mobile_save_{idx}", use_container_width=True):
+                if st.button("💾 Save", key=f"mobile_save_{idx}", use_container_width=True):
                     st.session_state.popup_program_data = program.to_dict() if hasattr(program, 'to_dict') else program
                     st.session_state.save_success_message = ""  # Clear previous success message
-                    # Clear save context for regular saves (not from Add Programs)  
+                    # Clear save context for regular saves (not from Add Programs)
                     st.session_state.save_context_schedule = None
                     st.session_state.show_save_dialog = True
                     st.rerun()
