@@ -1189,7 +1189,8 @@ def display_schedule_grid(filtered_df):
                             st.markdown(f'<div class="program-card {saved_class} {selected_class}">', unsafe_allow_html=True)
                             
                             # Truncate provider and program names for two-line display
-                            display_provider = provider_name[:20] + "..." if len(provider_name) > 20 else provider_name
+                            # Provider name uses smaller font (75%), so can fit more characters
+                            display_provider = provider_name[:35] + "..." if len(provider_name) > 35 else provider_name
                             display_program = program_name[:20] + "..." if len(program_name) > 20 else program_name
 
                             # Simple tooltip with full names and schedule info
